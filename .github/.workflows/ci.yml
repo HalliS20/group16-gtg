@@ -9,3 +9,5 @@ jobs:
       - run: CC=gcc-14 CFLAGS=-Werror make
       - run: clang-format --dry-run --Werror src/*
       - run: clang-tidy -p build/cmake --warnings-as-errors='*' src/*.c
+      - run: sudo apt-get install -y cppcheck
+      - run: cppcheck --enable=warning,performance,portability --error-exitcode=1 --quiet src/
