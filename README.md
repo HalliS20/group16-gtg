@@ -12,17 +12,17 @@ GTG is an acronym for "got to go" or "go touch grass" its up to the user
 pretty simple build
 if any issues consult makefile
 ### Requirements
-- Ninja
 - CMake
 - GCC
+- Ninja
 
-### building
+### Building
 1. Run "make" or "make all" in terminal
 2. Places binary in ./build/bin
 
 can also be made without make via: 
 - cmake -S . -B build/cmake -G Ninja
 
-### cleanup
+### Cleanup
 make clean
 or just delete build
