@@ -10,6 +10,7 @@ GTG is an acronym for "got to go" or "go touch grass" its up to the user
 
 ## Build
 pretty simple build
+
 if any issues consult makefile
 ### Requirements
 - CMake
@@ -25,4 +26,5 @@ can also be made without make via:
 
 ### Cleanup
 make clean
+
 or just delete build
