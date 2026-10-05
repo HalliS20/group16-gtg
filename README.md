@@ -7,3 +7,22 @@ GTG is an acronym for "got to go" or "go touch grass" its up to the user
 - Haraldur Steinar Skúlason
 - Hira Shafiq
 - Ivan Shtuka
+
+## Build
+pretty simple build
+if any issues consult makefile
+### Requirements
+- Ninja
+- CMake
+- GCC
+
+### building
+1. Run "make" or "make all" in terminal
+2. Places binary in ./build/bin
+
+can also be made without make via: 
+- cmake -S . -B build/cmake -G Ninja
+
+### cleanup
+make clean
+or just delete build
