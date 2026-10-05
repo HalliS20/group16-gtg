@@ -1,0 +1,6 @@
+--enable=warning,style,performance,portability
+--std=c23
+--platform=unix64
+--inconclusive
+--suppress=missingIncludeSystem
+--inline-suppr

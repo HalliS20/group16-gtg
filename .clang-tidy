@@ -1,0 +1,7 @@
+Checks: >
+  bugprone-*,
+  performance-*,
+  clang-analyzer-*,
+  misc-*,
+  -misc-unused-parameters,
+  -misc-include-cleaner

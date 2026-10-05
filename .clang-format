@@ -1,0 +1,10 @@
+BasedOnStyle: WebKit
+UseTab: Always
+TabWidth: 4
+IndentWidth: 4
+ColumnLimit: 100
+AlignEscapedNewlines: Left
+BreakInheritanceList: BeforeComma
+PenaltyExcessCharacter: 10
+BreakBeforeTernaryOperators: false
+AllowShortFunctionsOnASingleLine: None

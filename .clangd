@@ -1,0 +1,11 @@
+CompileFlags:
+  Add:
+    - -xc
+    - -std=c23
+    - -Wall
+    - -Wextra
+    - -Wpedantic
+    - -Wshadow
+    - -Wformat=2
+    - -Wundef
+  CompilationDatabase: build/cmake
