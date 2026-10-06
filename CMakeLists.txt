@@ -7,6 +7,8 @@ set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build/bin)
 
+add_subdirectory(lib)
+
 add_executable(gtg src/main.c)
 
 target_compile_options(gtg PRIVATE
