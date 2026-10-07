@@ -1,5 +1,5 @@
 --enable=warning,style,performance,portability
---std=c23
+--std=c++23
 --platform=unix64
 --inconclusive
 --suppress=missingIncludeSystem

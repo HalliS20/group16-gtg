@@ -3,5 +3,8 @@ Checks: >
   performance-*,
   clang-analyzer-*,
   misc-*,
+  cppcoreguidelines-*,
+  modernize-*,
+  readability-*
   -misc-unused-parameters,
   -misc-include-cleaner
