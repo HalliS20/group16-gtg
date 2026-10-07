@@ -6,8 +6,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: CC=gcc-14 CFLAGS=-Werror make
+      - run: CXX=g++-14 CFLAGS=-Werror make
       - run: clang-format --dry-run --Werror src/*
-      - run: clang-tidy -p build/cmake --warnings-as-errors='*' src/*.c
+      - run: clang-tidy -p build/cmake --warnings-as-errors='*' src/*.cpp
       - run: sudo apt-get install -y cppcheck
-      - run: cppcheck --enable=warning,performance,portability --error-exitcode=1 --quiet src/
+      - run: cppcheck --std=c++23  $(cat .cppcheck | tr '\n' ' ') --error-exitcode=1 --quiet src/

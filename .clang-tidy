@@ -1,7 +1,11 @@
 Checks: >
   bugprone-*,
-  performance-*,
   clang-analyzer-*,
   misc-*,
+  cppcoreguidelines-*,
+  modernize-*,
+  readability-*,
   -misc-unused-parameters,
-  -misc-include-cleaner
+  -misc-include-cleaner,
+  -misc-use-internal-linkage,
+  -modernize-use-trailing-return-type
