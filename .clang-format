@@ -8,3 +8,13 @@ BreakInheritanceList: BeforeComma
 PenaltyExcessCharacter: 10
 BreakBeforeTernaryOperators: false
 AllowShortFunctionsOnASingleLine: None
+
+#cpp specific
+NamespaceIndentation: None
+FixNamespaceComments: true
+PointerAlignment: Left
+ReferenceAlignment: Left
+Cpp11BracedListStyle: true
+BreakConstructorInitializers: BeforeComma
+AllowShortLambdasOnASingleLine: Empty
+IndentRequiresClause: true
