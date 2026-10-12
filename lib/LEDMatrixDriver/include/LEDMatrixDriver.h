@@ -48,14 +48,17 @@ public:
 	~LEDMatrixDriver();
 
 	/**
-	 * @brief
+	 * @brief Initialize the driver. The reason a separate, returnable method is used, is to avoid
+	 * performing non-trivial (possibly exceptional) operations in the driver's constructor.
 	 *
-	 * @param fbDev
-	 * @param fbSize
-	 * @param bytesPerPixel
-	 * @param width
-	 * @param height
-	 * @return std::expected<LEDMatrixDriver, std::string>
+	 * @param fbDev - path to the framebuffer.
+	 * @param fbSize - size of the framebuffer in bytes.
+	 * @param bytesPerPixel - bytes per pixel in the framebuffer.
+	 * @param width - width of the screen represented by the framebuffer in pixels.
+	 * @param height - height of the screen represented by the framebuffer in pixels.
+	 * @return std::expected<LEDMatrixDriver, std::string> - an std::expected object, .has_value() is
+	 * true if the call has succeeded (the actual driver object is then retrievable with .value()),
+	 * otherwise check .error() for more details.
 	 */
 	static std::expected<LEDMatrixDriver, std::string> create(const std::filesystem::path& fbDev,
 		size_t fbSize, size_t bytesPerPixel, size_t width, size_t height);
