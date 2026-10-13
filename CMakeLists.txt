@@ -20,5 +20,6 @@ target_compile_options(gtg PRIVATE
   -fstack-protector-strong
   -Og -g3 -fno-omit-frame-pointer
   -fsanitize=address,undefined -fno-sanitize-recover=all
+  -fno-exceptions
 )
 target_link_options(gtg PRIVATE -fsanitize=address,undefined)

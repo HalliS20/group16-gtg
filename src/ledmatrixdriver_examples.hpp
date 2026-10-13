@@ -215,9 +215,9 @@ inline void run_ledmatrixdriver_example1()
 	std::cout << "Testing .flipH(), .flipV()" << std::endl;
 	driver.setPixels(demoPixels3);
 	sleep(1);
-	crntPixels = driver.flipH(true);
+	driver.flipH(true);
 	sleep(1);
-	crntPixels = driver.flipV(true);
+	driver.flipV(true);
 	sleep(1);
 
 	std::cout << "Testing .loadImage()" << std::endl;
