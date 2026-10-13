@@ -376,3 +376,119 @@ std::vector<LEDMatrixDriver::LEDMatrixPixel> LEDMatrixDriver::loadImage(
 
 	return pixels;
 }
+
+// TODO
+void LEDMatrixDriver::showMessage(const std::string& message, float scrollSpeed,
+	const LEDMatrixRGBColor& textColor, const LEDMatrixRGBColor& backColor)
+{
+    // def _load_text_assets(self, text_image_file, text_file):
+    //     """
+    //     Internal. Builds a character indexed dictionary of pixels used by the
+    //     show_message function below
+    //     """
+    //     text_pixels = self.load_image(text_image_file, False)
+    //     with open(text_file, 'r') as f:
+    //         loaded_text = f.read()
+    //     self._text_dict = {}
+    //     for index, s in enumerate(loaded_text):
+    //         start = index * 40
+    //         end = start + 40
+    //         char = text_pixels[start:end]
+    //         self._text_dict[s] = char
+
+    // def _trim_whitespace(self, char):  # For loading text assets only
+    //     """
+    //     Internal. Trims white space pixels from the front and back of loaded
+    //     text characters
+    //     """
+    //     psum = lambda x: sum(sum(x, []))
+    //     if psum(char) > 0:
+    //         is_empty = True
+    //         while is_empty:  # From front
+    //             row = char[0:8]
+    //             is_empty = psum(row) == 0
+    //             if is_empty:
+    //                 del char[0:8]
+    //         is_empty = True
+    //         while is_empty:  # From back
+    //             row = char[-8:]
+    //             is_empty = psum(row) == 0
+    //             if is_empty:
+    //                 del char[-8:]
+    //     return char
+
+	// def show_message(
+	//         self,
+	//         text_string,
+	//         scroll_speed=.1,
+	//         text_colour=[255, 255, 255],
+	//         back_colour=[0, 0, 0]
+	//     ):
+	//     """
+	//     Scrolls a string of text across the LED matrix using the specified
+	//     speed and colours
+	//     """
+	//     # We must rotate the pixel map left through 90 degrees when drawing
+	//     # text, see _load_text_assets
+	//     previous_rotation = self._rotation
+	//     self._rotation -= 90
+	//     if self._rotation < 0:
+	//         self._rotation = 270
+	//     dummy_colour = [None, None, None]
+	//     string_padding = [dummy_colour] * 64
+	//     letter_padding = [dummy_colour] * 8
+	//     # Build pixels from dictionary
+	//     scroll_pixels = []
+	//     scroll_pixels.extend(string_padding)
+	//     for s in text_string:
+	//         scroll_pixels.extend(self._trim_whitespace(self._get_char_pixels(s)))
+	//         scroll_pixels.extend(letter_padding)
+	//     scroll_pixels.extend(string_padding)
+	//     # Recolour pixels as necessary
+	//     coloured_pixels = [
+	//         text_colour if pixel == [255, 255, 255] else back_colour
+	//         for pixel in scroll_pixels
+	//     ]
+	//     # Shift right by 8 pixels per frame to scroll
+	//     scroll_length = len(coloured_pixels) // 8
+	//     for i in range(scroll_length - 8):
+	//         start = i * 8
+	//         end = start + 64
+	//         self.set_pixels(coloured_pixels[start:end])
+	//         time.sleep(scroll_speed)
+	//     self._rotation = previous_rotation
+}
+
+// TODO
+void LEDMatrixDriver::showLetter(
+	char letter, const LEDMatrixRGBColor& textColor, const LEDMatrixRGBColor& backColor)
+{
+	// def show_letter(
+	//         self,
+	//         s,
+	//         text_colour=[255, 255, 255],
+	//         back_colour=[0, 0, 0]
+	//     ):
+	//     """
+	//     Displays a single text character on the LED matrix using the specified
+	//     colours
+	//     """
+	//     if len(s) > 1:
+	//         raise ValueError('Only one character may be passed into this method')
+	//     # We must rotate the pixel map left through 90 degrees when drawing
+	//     # text, see _load_text_assets
+	//     previous_rotation = self._rotation
+	//     self._rotation -= 90
+	//     if self._rotation < 0:
+	//         self._rotation = 270
+	//     dummy_colour = [None, None, None]
+	//     pixel_list = [dummy_colour] * 8
+	//     pixel_list.extend(self._get_char_pixels(s))
+	//     pixel_list.extend([dummy_colour] * 16)
+	//     coloured_pixels = [
+	//         text_colour if pixel == [255, 255, 255] else back_colour
+	//         for pixel in pixel_list
+	//     ]
+	//     self.set_pixels(coloured_pixels)
+	//     self._rotation = previous_rotation
+}
