@@ -6,8 +6,8 @@
  *
  */
 
-#include <utility>
 #include <iostream>
+#include <utility>
 
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -30,7 +30,8 @@ std::expected<int, std::string> openFBDevice(const fs::path& fbDevPath, size_t s
 		return std::unexpected("LEDMatrixDriver: Failed to open file descriptor of a fb device!\n");
 	}
 	if (0 != ftruncate(fbFd, size)) {
-		return std::unexpected("LEDMatrixDriver: Failed to truncate file descriptor to the requested length!\n");
+		return std::unexpected(
+			"LEDMatrixDriver: Failed to truncate file descriptor to the requested length!\n");
 	}
 	return fbFd;
 }
@@ -57,13 +58,50 @@ std::expected<int, std::string> closeFBDevice(int fbFd)
 {
 	if (fbFd > 0) {
 		if (0 != close(fbFd)) {
-			return std::unexpected("LEDMatrixDriver: Failed to close file descriptor of a fb device!\n");
+			return std::unexpected(
+				"LEDMatrixDriver: Failed to close file descriptor of a fb device!\n");
 		}
 	}
 	return 0;
 }
-} // namespace
 
+uint32_t rescaleRange(uint32_t val, uint32_t max_in, uint32_t max_out)
+{
+	return ((val * max_out) + (max_in / 2)) / max_in;
+}
+
+LEDMatrixDriver::LEDMatrixRGBColor rgb888ToRgb565(uint8_t red, uint8_t green, uint8_t blue)
+{
+	uint32_t r5 = rescaleRange(red, 255, 31); // 2^8, 2^5
+	uint32_t g6 = rescaleRange(green, 255, 63); // 2^8, 2^6
+	uint32_t b5 = rescaleRange(blue, 255, 31); // 2^8, 2^5
+
+	return {.red = r5, .green = g6, .blue = b5};
+}
+
+uint16_t packRgb565(uint8_t red, uint8_t green, uint8_t blue)
+{
+	return ((red << 11) & 0xF800) | ((green << 5) & 0x07E0) | (blue & 0x001F);
+}
+
+LEDMatrixDriver::LEDMatrixRGBColor unpackRgb565(uint16_t packedRgb)
+{
+	uint8_t r5 = (packedRgb & 0xF800) >> 11;
+	uint8_t g6 = (packedRgb & 0x7E0) >> 5;
+	uint8_t b5 = (packedRgb & 0x1F);
+
+	return {.red = r5, .green = g6, .blue = b5};
+}
+
+LEDMatrixDriver::LEDMatrixRGBColor rgb565ToRgb888(uint8_t red, uint8_t green, uint8_t blue)
+{
+	uint32_t r8 = rescaleRange(red, 31, 255); // 2^8, 2^5
+	uint32_t g8 = rescaleRange(green, 63, 255); // 2^8, 2^6
+	uint32_t b8 = rescaleRange(blue, 31, 255); // 2^8, 2^5
+
+	return {.red = r8, .green = g8, .blue = b8};
+}
+} // namespace
 
 std::expected<LEDMatrixDriver, std::string> LEDMatrixDriver::create(
 	const fs::path& fbDev, size_t fbSize, size_t bytesPerPixel, size_t width, size_t height)
@@ -130,4 +168,60 @@ LEDMatrixDriver::~LEDMatrixDriver()
 {
 	unmapFBDevice(m_fbMmapAddr);
 	closeFBDevice(m_fbFd);
+}
+
+void LEDMatrixDriver::setPixel(unsigned int x, unsigned int y, const LEDMatrixRGBColor& color)
+{
+	if (x > m_width - 1 || y > m_height - 1) {
+		std::cerr << "LEDMatrixDriver: Invalid pixel coordinates!" << std::endl;
+		return;
+	}
+	if (m_fbMmapAddr.empty()) {
+		std::cerr << "LEDMatrixDriver: Fb memory address is null!" << std::endl;
+		return;
+	}
+
+	size_t offset = ((m_width * y) + x) * m_bytesPerPixel;
+
+	LEDMatrixRGBColor color565 = rgb888ToRgb565(color.red, color.green, color.blue);
+	uint16_t value = packRgb565(color565.red, color565.green, color565.blue);
+
+	for (size_t byteOffset = 0; byteOffset < m_bytesPerPixel; ++byteOffset) {
+		if (offset + byteOffset > m_fbMmapAddr.size_bytes()) {
+			std::cerr << "LEDMatrixDriver: offset+byteOffset outside of the fb memory range!"
+					  << std::endl;
+			break;
+		}
+		m_fbMmapAddr[offset + byteOffset] = static_cast<uint8_t>((value >> (8 * byteOffset)) & 0xFF);
+	}
+}
+
+LEDMatrixDriver::LEDMatrixPixel LEDMatrixDriver::getPixel(unsigned int x, unsigned int y)
+{
+	if (x > m_width - 1 || y > m_height - 1) {
+		std::cerr << "LEDMatrixDriver: Invalid pixel coordinates!" << std::endl;
+		return {};
+	}
+	if (m_fbMmapAddr.empty()) {
+		std::cerr << "LEDMatrixDriver: Fb memory address is null!" << std::endl;
+		return {};
+	}
+
+	size_t offset = (y * m_bytesPerPixel * m_width) + (x * m_bytesPerPixel);
+
+	uint16_t value = 0;
+
+	for (size_t byteOffset = 0; byteOffset < m_bytesPerPixel; ++byteOffset) {
+		if (offset + byteOffset > m_fbMmapAddr.size_bytes()) {
+			std::cerr << "LEDMatrixDriver: offset+byteOffset outside of the fb memory range!"
+					  << std::endl;
+			break;
+		}
+
+		value |= (m_fbMmapAddr[offset + byteOffset] << (8 * byteOffset));
+	}
+
+	LEDMatrixRGBColor unpackedValue = unpackRgb565(value);
+
+	return rgb565ToRgb888(unpackedValue.red, unpackedValue.green, unpackedValue.blue);
 }
