@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "rtimulib_examples.hpp"
 #include "ledmatrixdriver_examples.hpp"
+#include "rtimulib_examples.hpp"
 
 using std::cout;
 using std::flush;
