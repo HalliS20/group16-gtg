@@ -157,6 +157,7 @@ inline void run_ledmatrixdriver_example1()
 
 	LEDMatrixDriver& driver = driverResult.value();
 
+	std::cout << "Testing .setPixel()" << std::endl;
 	driver.setPixel(0, 0, {.red = 255, .green = 0, .blue = 0});
 	LEDMatrixDriver::LEDMatrixPixel crntPixel = driver.getPixel(0, 0);
 	std::cout << "Pixel RGB: " << crntPixel.red << " " << crntPixel.green << " " << crntPixel.blue
@@ -173,14 +174,15 @@ inline void run_ledmatrixdriver_example1()
 
 	driver.setPixel(0, 0, {.red = 0, .green = 0, .blue = 0});
 	driver.setPixel(7, 7, {.red = 0, .green = 0, .blue = 0});
-
 	sleep(1);
 
+	std::cout << "Testing .setPixels()" << std::endl;
 	std::vector<LEDMatrixDriver::LEDMatrixPixel> demoPixels1(
 		SENSEHAT_FB_WIDTH_PX * SENSEHAT_FB_HEIGHT_PX, {.red = 255, .green = 0, .blue = 255});
 	driver.setPixels(demoPixels1);
 	sleep(1);
 
+	std::cout << "Testing .getPixels()" << std::endl;
 	std::vector<LEDMatrixDriver::LEDMatrixPixel> crntPixels = driver.getPixels();
 	for (long unsigned i = 0U; i < SENSEHAT_FB_HEIGHT_PX; ++i) {
 		for (long unsigned j = 0U; j < SENSEHAT_FB_WIDTH_PX; ++j) {
@@ -191,9 +193,11 @@ inline void run_ledmatrixdriver_example1()
 		std::cout << std::endl;
 	}
 
+	std::cout << "Testing .clear()" << std::endl;
 	driver.clear({.red = 0, .green = 0, .blue = 0});
 	sleep(1);
 
+	std::cout << "Testing .rotateCCW()" << std::endl;
 	driver.setPixels(demoPixels2);
 	sleep(1);
 	driver.rotateCCW(90);
@@ -208,6 +212,7 @@ inline void run_ledmatrixdriver_example1()
 	driver.clear({.red = 0, .green = 0, .blue = 0});
 	sleep(1);
 
+	std::cout << "Testing .flipH(), .flipV()" << std::endl;
 	driver.setPixels(demoPixels3);
 	sleep(1);
 	crntPixels = driver.flipH(true);
@@ -215,6 +220,7 @@ inline void run_ledmatrixdriver_example1()
 	crntPixels = driver.flipV(true);
 	sleep(1);
 
+	std::cout << "Testing .loadImage()" << std::endl;
 	driver.loadImage("/workspace/assets/diagonalTopLeft.png", true);
 	sleep(1);
 	driver.loadImage("/workspace/assets/straightUp.png", true);
