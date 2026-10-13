@@ -102,6 +102,25 @@ LEDMatrixDriver::LEDMatrixRGBColor rgb565ToRgb888(uint8_t red, uint8_t green, ui
 
 	return {.red = r8, .green = g8, .blue = b8};
 }
+
+unsigned int rotatePixel90degCCW(
+	unsigned int i, size_t width, size_t height, unsigned int numRotations)
+{
+	unsigned int oldI = i;
+	unsigned int newI = oldI;
+	while (0 != (numRotations--)) {
+		unsigned int xOld = oldI % width;
+		unsigned int yOld = std::floor(oldI / height);
+
+		unsigned int xNew = yOld;
+		unsigned int yNew = (width - 1) - xOld;
+
+		newI = (yNew * width) + xNew;
+		oldI = newI;
+	}
+
+	return newI;
+}
 } // namespace
 
 std::expected<LEDMatrixDriver, std::string> LEDMatrixDriver::create(
@@ -182,7 +201,9 @@ void LEDMatrixDriver::setPixel(unsigned int x, unsigned int y, const LEDMatrixRG
 		return;
 	}
 
-	size_t offset = ((m_width * y) + x) * m_bytesPerPixel;
+	unsigned int newI = rotatePixel90degCCW((m_width * y) + x, m_width, m_height, m_rotation / 90);
+
+	size_t offset = newI * m_bytesPerPixel;
 
 	LEDMatrixRGBColor color565 = rgb888ToRgb565(color.red, color.green, color.blue);
 	uint16_t value = packRgb565(color565.red, color565.green, color565.blue);
@@ -256,4 +277,20 @@ void LEDMatrixDriver::clear(const LEDMatrixRGBColor& color)
 
 	std::vector<LEDMatrixPixel> pixels(m_width * m_height, color);
 	setPixels(pixels);
+}
+
+void LEDMatrixDriver::rotateCCW(unsigned int rotation)
+{
+	if (rotation % 90 == 0) {
+		std::vector<LEDMatrixPixel> pixels = getPixels();
+
+		m_rotation = rotation;
+
+		setPixels(pixels);
+	}
+}
+
+unsigned int LEDMatrixDriver::getRotation() const
+{
+	return m_rotation;
 }
