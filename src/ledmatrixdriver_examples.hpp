@@ -1,4 +1,5 @@
 #include <iostream>
+#include <unistd.h>
 
 #include <LEDMatrixDriver.h>
 
@@ -17,5 +18,20 @@ inline void run_ledmatrixdriver_example1()
 		return;
 	}
 
-	// LEDMatrixDriver& driver = driverResult.value();
+	LEDMatrixDriver& driver = driverResult.value();
+
+	driver.setPixel(0, 0, {.red = 255, .green = 0, .blue = 0});
+	LEDMatrixDriver::LEDMatrixPixel px = driver.getPixel(0, 0);
+	std::cout << "Pixel RGB: " << px.red << " " << px.green << " " << px.blue << std::endl;
+
+	sleep(1);
+
+	driver.setPixel(7, 7, {.red = 255, .green = 0, .blue = 0});
+	px = driver.getPixel(7, 7);
+	std::cout << "Pixel RGB: " << px.red << " " << px.green << " " << px.blue << std::endl;
+
+	sleep(1);
+
+	driver.setPixel(0, 0, {.red = 0, .green = 0, .blue = 0});
+	driver.setPixel(7, 7, {.red = 0, .green = 0, .blue = 0});
 }
