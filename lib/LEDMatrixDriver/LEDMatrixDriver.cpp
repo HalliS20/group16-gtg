@@ -6,6 +6,7 @@
  *
  */
 
+#include <cmath>
 #include <iostream>
 #include <utility>
 
@@ -224,4 +225,35 @@ LEDMatrixDriver::LEDMatrixPixel LEDMatrixDriver::getPixel(unsigned int x, unsign
 	LEDMatrixRGBColor unpackedValue = unpackRgb565(value);
 
 	return rgb565ToRgb888(unpackedValue.red, unpackedValue.green, unpackedValue.blue);
+}
+
+void LEDMatrixDriver::setPixels(std::span<const LEDMatrixPixel> pixels)
+{
+	for (size_t i = 0; i < m_width * m_height; ++i) {
+		if (i >= pixels.size()) {
+			break;
+		}
+		setPixel(i % m_width, std::floor(i / m_height), pixels[i]);
+	}
+}
+
+std::vector<LEDMatrixDriver::LEDMatrixPixel> LEDMatrixDriver::getPixels()
+{
+	std::vector<LEDMatrixPixel> pixels(m_width * m_height, {.red = 0, .green = 0, .blue = 0});
+
+	for (size_t i = 0; i < m_width * m_height; ++i) {
+		if (i >= pixels.size()) {
+			break;
+		}
+		pixels.at(i) = getPixel(i % m_width, std::floor(i / m_height));
+	}
+	return pixels;
+}
+
+void LEDMatrixDriver::clear(const LEDMatrixRGBColor& color)
+{
+	m_rotation = 0;
+
+	std::vector<LEDMatrixPixel> pixels(m_width * m_height, color);
+	setPixels(pixels);
 }
