@@ -78,6 +78,74 @@ static const std::array<LEDMatrixDriver::LEDMatrixPixel, SENSEHAT_FB_HEIGHT_PX *
 		{.red = 255, .green = 0, .blue = 0},
 	}};
 
+static const std::array<LEDMatrixDriver::LEDMatrixPixel, SENSEHAT_FB_HEIGHT_PX * SENSEHAT_FB_WIDTH_PX> demoPixels3
+	= {{
+		{.red = 0, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 0, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 0, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 0, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+		{.red = 255, .green = 0, .blue = 0},
+	}};
+
 inline void run_ledmatrixdriver_example1()
 {
 	auto driverResult = LEDMatrixDriver::create(SENSEHAT_FB_NAME, SENSEHAT_FB_SIZE,
@@ -138,6 +206,17 @@ inline void run_ledmatrixdriver_example1()
 	driver.rotateCCW(90);
 	sleep(1);
 	driver.rotateCCW(90);
+	sleep(1);
+
+	driver.clear({.red = 0, .green = 0, .blue = 0});
+	sleep(1);
+
+	driver.setPixels(demoPixels3);
+	sleep(1);
+
+	crntPixels = driver.flipH(true);
+	sleep(1);
+	crntPixels = driver.flipV(true);
 	sleep(1);
 
 	driver.clear({.red = 0, .green = 0, .blue = 0});
