@@ -294,3 +294,39 @@ unsigned int LEDMatrixDriver::getRotation() const
 {
 	return m_rotation;
 }
+
+std::vector<LEDMatrixDriver::LEDMatrixPixel> LEDMatrixDriver::flipH(bool redraw)
+{
+	std::vector<LEDMatrixDriver::LEDMatrixPixel> pixelList = getPixels();
+	std::vector<LEDMatrixDriver::LEDMatrixPixel> flipped;
+
+	for (int i = 0; i < (int)m_height; ++i) {
+		for (int j = ((int)m_width - 1); j >= 0; --j) {
+			flipped.push_back(pixelList.at((i * (int)m_width) + j));
+		}
+	}
+
+	if (redraw) {
+		setPixels(flipped);
+	}
+
+	return flipped;
+}
+
+std::vector<LEDMatrixDriver::LEDMatrixPixel> LEDMatrixDriver::flipV(bool redraw)
+{
+	std::vector<LEDMatrixDriver::LEDMatrixPixel> pixelList = getPixels();
+	std::vector<LEDMatrixDriver::LEDMatrixPixel> flipped;
+
+	for (int i = ((int)m_height - 1); i >= 0; --i) {
+		for (int j = 0; j < (int)m_width; ++j) {
+			flipped.push_back(pixelList.at((i * (int)m_width) + j));
+		}
+	}
+
+	if (redraw) {
+		setPixels(flipped);
+	}
+
+	return flipped;
+}

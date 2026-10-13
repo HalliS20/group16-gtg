@@ -86,7 +86,7 @@ public:
 	 * @return true
 	 * @return false
 	 */
-	bool flipH(bool redraw);
+	std::vector<LEDMatrixPixel> flipH(bool redraw);
 
 	/**
 	 * @brief
@@ -95,7 +95,7 @@ public:
 	 * @return true
 	 * @return false
 	 */
-	bool flipV(bool redraw);
+	std::vector<LEDMatrixPixel> flipV(bool redraw);
 
 	/**
 	 * @brief Set the LED pixels to the pixels supplied in the argument. If there are more supplied
