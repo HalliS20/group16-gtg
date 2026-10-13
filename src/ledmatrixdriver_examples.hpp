@@ -179,9 +179,9 @@ inline void run_ledmatrixdriver_example1()
 	std::vector<LEDMatrixDriver::LEDMatrixPixel> demoPixels1(
 		SENSEHAT_FB_WIDTH_PX * SENSEHAT_FB_HEIGHT_PX, {.red = 255, .green = 0, .blue = 255});
 	driver.setPixels(demoPixels1);
+	sleep(1);
 
 	std::vector<LEDMatrixDriver::LEDMatrixPixel> crntPixels = driver.getPixels();
-
 	for (long unsigned i = 0U; i < SENSEHAT_FB_HEIGHT_PX; ++i) {
 		for (long unsigned j = 0U; j < SENSEHAT_FB_WIDTH_PX; ++j) {
 			crntPixel = crntPixels.at((SENSEHAT_FB_WIDTH_PX * i) + j);
@@ -191,10 +191,7 @@ inline void run_ledmatrixdriver_example1()
 		std::cout << std::endl;
 	}
 
-	sleep(1);
-
 	driver.clear({.red = 0, .green = 0, .blue = 0});
-
 	sleep(1);
 
 	driver.setPixels(demoPixels2);
@@ -213,10 +210,14 @@ inline void run_ledmatrixdriver_example1()
 
 	driver.setPixels(demoPixels3);
 	sleep(1);
-
 	crntPixels = driver.flipH(true);
 	sleep(1);
 	crntPixels = driver.flipV(true);
+	sleep(1);
+
+	driver.loadImage("/workspace/assets/diagonalTopLeft.png", true);
+	sleep(1);
+	driver.loadImage("/workspace/assets/straightUp.png", true);
 	sleep(1);
 
 	driver.clear({.red = 0, .green = 0, .blue = 0});
