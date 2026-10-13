@@ -14,6 +14,9 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include "LEDMatrixDriver.h"
 
 namespace fs = std::filesystem;
@@ -329,4 +332,47 @@ std::vector<LEDMatrixDriver::LEDMatrixPixel> LEDMatrixDriver::flipV(bool redraw)
 	}
 
 	return flipped;
+}
+
+std::vector<LEDMatrixDriver::LEDMatrixPixel> LEDMatrixDriver::loadImage(
+	const fs::path& path, bool redraw)
+{
+	if (!fs::exists(path) || !fs::is_regular_file(path)) {
+		std::cerr << "LEDMatrixDriver: Invalid file path!" << std::endl;
+		return {};
+	}
+
+	int width = 0;
+	int height = 0;
+	int channels = 0;
+	int desired_channels = 3;
+	auto* imageDataRaw = stbi_load(path.c_str(), &width, &height, &channels, desired_channels);
+	if (nullptr == imageDataRaw) {
+		std::cerr << "LEDMatrixDriver: Failed to load image - " << stbi_failure_reason() << "!" << std::endl;
+		return {};
+	}
+
+	size_t numPixels = width * height;
+	size_t numBytes = numPixels * desired_channels;
+
+	auto imageData = std::span<unsigned char>(static_cast<unsigned char*>(imageDataRaw), numBytes);
+
+	std::vector<LEDMatrixPixel> pixels(numPixels, {.red = 0, .green = 0, .blue = 0});
+
+	for (size_t i = 0; i < numBytes; i += desired_channels) {
+		uint8_t r8 = imageData[i];
+		uint8_t g8 = imageData[i + 1];
+		uint8_t b8 = imageData[i + 2];
+
+		LEDMatrixPixel pixel = {.red = r8, .green = g8, .blue = b8};
+		pixels.at(i / desired_channels) = pixel;
+	}
+
+	if (redraw) {
+		setPixels(pixels);
+	}
+
+	stbi_image_free(imageDataRaw);
+
+	return pixels;
 }
