@@ -22,6 +22,9 @@
 //  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "RTIMULib.h"
+#include "circular_buffer.hpp"
+#include "linear_regression.hpp"
+#include "integral.hpp"
 
 inline int run_rtimulib_example1()
 {
@@ -38,6 +41,7 @@ inline int run_rtimulib_example1()
 	RTIMU* imu = RTIMU::createIMU(settings);
 	RTPressure* pressure = RTPressure::createPressure(settings);
 	RTHumidity* humidity = RTHumidity::createHumidity(settings);
+
 
 	if ((imu == NULL) || (imu->IMUType() == RTIMU_TYPE_NULL)) {
 		printf("No IMU found\n");
@@ -71,6 +75,18 @@ inline int run_rtimulib_example1()
 
 	rateTimer = displayTimer = RTMath::currentUSecsSinceEpoch();
 
+	const double dt = imu->IMUGetPollInterval() / 1000.0;
+	const double G  = 9.80665;
+
+	// Create circular buffers for accelerometer x, y and z values
+	
+	cb::CircularBuffer x_buf(1000);
+	cb::CircularBuffer y_buf(1000);
+	cb::CircularBuffer z_buf(1000);
+
+	int accel_samples = 100;
+	lr::LineFit x_accel_line, y_accel_line, z_accel_line;
+
 	//  now just process data
 
 	while (1) {
@@ -79,7 +95,16 @@ inline int run_rtimulib_example1()
 		usleep(imu->IMUGetPollInterval() * 1000);
 
 		while (imu->IMURead()) {
+			
+			// Read accel data into buffers
+
 			RTIMU_DATA imuData = imu->getIMUData();
+			
+			if (imuData.accelValid) {
+				x_buf.add(imuData.accel.x());
+				y_buf.add(imuData.accel.y());
+				z_buf.add(imuData.accel.z());
+			}
 
 			//  add the pressure data to the structure
 
@@ -97,19 +122,34 @@ inline int run_rtimulib_example1()
 
 			//  display 5 times per second
 
-			if ((now - displayTimer) > 200000) {
-				printf("Sample rate %d: %s\n", sampleRate,
-					RTMath::displayDegrees("", imuData.fusionPose));
+			if ((now - displayTimer) > 100000) {
 
-				if (pressure != NULL) {
-					printf("Pressure: %4.1f, height above sea level: %4.1f, temperature: %4.1f",
-						imuData.pressure, RTMath::convertPressureToHeight(imuData.pressure),
-						imuData.temperature);
-				}
-				if (humidity != NULL) {
-					printf(", humidity: %4.1f", imuData.humidity);
-				}
-				printf("\n");
+				// Perform linear regression on the last 'accel_samples' number of samples. 
+				// The second argument to fitLine is the time between samples. 
+				// Passing dt assumes that samples are perfectly spaced in time.
+				// The RTIMU_DATA type also contains a timestamp. 
+				// We could print out the timestamps and see how evenly spaced they actually are.
+				// If there is a lot of jitter it will mess with our results. 
+				// We could modify fitLine to accept a vector of timestamps.
+				x_accel_line = lr::fitLine(x_buf.get(accel_samples), dt);
+				y_accel_line = lr::fitLine(y_buf.get(accel_samples), dt);
+				z_accel_line = lr::fitLine(z_buf.get(accel_samples), dt);
+				
+				// Calculate the integral of the x, y and z lines. 
+				// Integrating acceleration gives us velocity.
+				// Integrating velocity gives us position. 
+				// Say we need ~100 acceleration samples to give us a good velocity estimation
+				// And we need ~100 velocity samples for a good position estimation
+				// That means that we would need 10.000 acceleration samples for a good position estimation.
+				// No idea if ~100 is the number of samples we need, but the scaling is a bit scary
+				// The sign is lost when integrating, we'll have to deal with that somehow
+				const double T = accel_samples * dt;   // this assumes that the buffer always contains at least 'accel_samples' number of samples
+				double x_velocity = integral::linearIntegral(x_accel_line.slope, x_accel_line.intercept, T) * G;
+				double y_velocity = integral::linearIntegral(y_accel_line.slope, y_accel_line.intercept, T) * G;
+				double z_velocity = integral::linearIntegral(z_accel_line.slope, z_accel_line.intercept, T) * G;
+				
+				printf("Velocity  x: %8.4f  y: %8.4f  z: %8.4f\n", x_velocity, y_velocity, z_velocity);
+				
 
 				fflush(stdout);
 				displayTimer = now;
