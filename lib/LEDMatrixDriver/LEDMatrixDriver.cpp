@@ -7,7 +7,10 @@
  */
 
 #include <cmath>
+#include <fstream>
 #include <iostream>
+#include <numeric>
+#include <thread>
 #include <utility>
 
 #include <fcntl.h>
@@ -124,24 +127,123 @@ unsigned int rotatePixel90degCCW(
 
 	return newI;
 }
+
+std::expected<std::vector<LEDMatrixDriver::LEDMatrixPixel>, std::string> imageAssetsLoad(
+	const fs::path& path)
+{
+	if (!fs::exists(path) || !fs::is_regular_file(path)) {
+		return std::unexpected("LEDMatrixDriver: Invalid image path!");
+	}
+
+	int width = 0;
+	int height = 0;
+	int channels = 0;
+	int desired_channels = 3;
+	auto* imageDataRaw = stbi_load(path.c_str(), &width, &height, &channels, desired_channels);
+	if (nullptr == imageDataRaw) {
+		std::string error;
+		error.append("LEDMatrixDriver: Failed to load image - ").append(stbi_failure_reason()).append("!");
+		return std::unexpected(error);
+	}
+
+	size_t numPixels = width * height;
+	size_t numBytes = numPixels * desired_channels;
+
+	auto imageData = std::span<unsigned char>(static_cast<unsigned char*>(imageDataRaw), numBytes);
+
+	std::vector<LEDMatrixDriver::LEDMatrixPixel> pixels(numPixels, {.red = 0, .green = 0, .blue = 0});
+
+	for (size_t i = 0; i < numBytes; i += desired_channels) {
+		uint8_t r8 = imageData[i];
+		uint8_t g8 = imageData[i + 1];
+		uint8_t b8 = imageData[i + 2];
+
+		pixels.at(i / desired_channels) = {.red = r8, .green = g8, .blue = b8};
+	}
+
+	stbi_image_free(imageDataRaw);
+
+	return pixels;
+}
+
+std::expected<std::unordered_map<char, std::vector<LEDMatrixDriver::LEDMatrixPixel>>, std::string>
+textAssetsLoad(const fs::path& textImagePath, const fs::path& textFilePath)
+{
+	auto textPixels = imageAssetsLoad(textImagePath);
+	if (!textPixels.has_value()) {
+		return std::unexpected(textPixels.error());
+	}
+
+	std::ifstream textFile(textFilePath);
+	if (!textFile.is_open()) {
+		return std::unexpected("LEDMatrixDriver: Invalid text file path!");
+	}
+
+	std::stringstream textBuffer;
+	std::string text;
+
+	textBuffer << textFile.rdbuf();
+	text = textBuffer.str();
+
+	std::unordered_map<char, std::vector<LEDMatrixDriver::LEDMatrixPixel>> charsMap;
+
+	for (unsigned int i = 0; i < text.size(); ++i) {
+		char c = text.at(i);
+
+		unsigned int start = i * 40;
+		unsigned int end = start + 40;
+
+		std::vector<LEDMatrixDriver::LEDMatrixPixel> charPixels(
+			textPixels.value().begin() + start, textPixels.value().begin() + end);
+		charsMap[c] = charPixels;
+	}
+
+	std::cout << "created charsMap" << std::endl;
+
+	return charsMap;
+}
+
+void textAssetsTrimCharWhitespaces(std::vector<LEDMatrixDriver::LEDMatrixPixel>& charPixels)
+{
+	auto isEmptyPixel = [](const LEDMatrixDriver::LEDMatrixPixel& p) {
+		return p.red == 0 && p.green == 0 && p.blue == 0;
+	};
+
+	while (charPixels.size() >= 8) {
+		if (std::all_of(charPixels.begin(), charPixels.begin() + 8, isEmptyPixel)) {
+			charPixels.erase(charPixels.begin(), charPixels.begin() + 8);
+		} else {
+			break;
+		}
+	}
+
+	while (charPixels.size() >= 8) {
+		if (std::all_of(charPixels.end() - 8, charPixels.end(), isEmptyPixel)) {
+			charPixels.erase(charPixels.end() - 8, charPixels.end());
+		} else {
+			break;
+		}
+	}
+}
 } // namespace
 
-std::expected<LEDMatrixDriver, std::string> LEDMatrixDriver::create(
-	const fs::path& fbDev, size_t fbSize, size_t bytesPerPixel, size_t width, size_t height)
+std::expected<LEDMatrixDriver, std::string> LEDMatrixDriver::create(const fs::path& fbDev,
+	size_t fbSize, size_t bytesPerPixel, size_t width, size_t height,
+	const std::filesystem::path& textAssetsPath, const std::filesystem::path& imageAssetsPath)
 {
 	bool validFb = checkFBDevice(fbDev);
 	if (!validFb) {
-		return std::unexpected("LEDMatrixDriver: Invalid fb device!\n");
+		return std::unexpected("LEDMatrixDriver: Invalid fb device!");
 	}
 
-	std::cout << "LEDMatrixDriver: Using " << fbDev << " device.\n";
+	std::cout << "LEDMatrixDriver: Using " << fbDev << " device." << std::endl;
 
 	auto fbFd = openFBDevice(fbDev, fbSize);
 	if (!fbFd.has_value()) {
 		return std::unexpected(fbFd.error());
 	}
 
-	std::cout << "LEDMatrixDriver: Opened " << fbDev << " device for read/write.\n";
+	std::cout << "LEDMatrixDriver: Opened " << fbDev << " device for read/write." << std::endl;
 
 	auto fbMmapPtr = mmapFBDevice(fbFd.value(), fbSize);
 	if (!fbMmapPtr.has_value()) {
@@ -149,18 +251,29 @@ std::expected<LEDMatrixDriver, std::string> LEDMatrixDriver::create(
 		return std::unexpected(fbMmapPtr.error());
 	}
 
-	std::cout << "LEDMatrixDriver: Mmaped " << fbDev << " device.\n";
+	std::cout << "LEDMatrixDriver: Mmaped " << fbDev << " device." << std::endl;
 
-	return LEDMatrixDriver(fbMmapPtr.value(), fbFd.value(), bytesPerPixel, width, height);
+	auto textAssets = textAssetsLoad(imageAssetsPath, textAssetsPath);
+	if (!textAssets.has_value()) {
+		unmapFBDevice(fbMmapPtr.value());
+		closeFBDevice(fbFd.value());
+		return std::unexpected(textAssets.error());
+	}
+
+	std::cout << "LEDMatrixDriver: Loaded text and image assets" << std::endl;
+
+	return LEDMatrixDriver(
+		fbMmapPtr.value(), fbFd.value(), bytesPerPixel, width, height, textAssets.value());
 }
-LEDMatrixDriver::LEDMatrixDriver(
-	std::span<uint8_t> fbMmapAddr, int fbFd, size_t bytesPerPixel, size_t width, size_t height)
+LEDMatrixDriver::LEDMatrixDriver(std::span<uint8_t> fbMmapAddr, int fbFd, size_t bytesPerPixel,
+	size_t width, size_t height, std::unordered_map<char, std::vector<LEDMatrixPixel>> charsMap)
 	: m_fbMmapAddr(fbMmapAddr)
 	, m_fbFd(fbFd)
 	, m_bytesPerPixel(bytesPerPixel)
 	, m_width(width)
 	, m_height(height)
 	, m_rotation(0)
+	, m_charsMap(std::move(charsMap))
 {
 }
 LEDMatrixDriver::LEDMatrixDriver(LEDMatrixDriver&& other) noexcept
@@ -170,6 +283,7 @@ LEDMatrixDriver::LEDMatrixDriver(LEDMatrixDriver&& other) noexcept
 	, m_width(other.m_width)
 	, m_height(other.m_height)
 	, m_rotation(other.m_rotation)
+	, m_charsMap(std::move(other.m_charsMap))
 {
 }
 LEDMatrixDriver& LEDMatrixDriver::operator=(LEDMatrixDriver&& other) noexcept
@@ -184,6 +298,7 @@ LEDMatrixDriver& LEDMatrixDriver::operator=(LEDMatrixDriver&& other) noexcept
 		m_rotation = other.m_rotation;
 		m_width = other.m_width;
 		m_height = other.m_height;
+		m_charsMap = std::move(other.m_charsMap);
 	}
 	return *this;
 }
@@ -337,158 +452,95 @@ std::vector<LEDMatrixDriver::LEDMatrixPixel> LEDMatrixDriver::flipV(bool redraw)
 std::vector<LEDMatrixDriver::LEDMatrixPixel> LEDMatrixDriver::loadImage(
 	const fs::path& path, bool redraw)
 {
-	if (!fs::exists(path) || !fs::is_regular_file(path)) {
-		std::cerr << "LEDMatrixDriver: Invalid file path!" << std::endl;
+	auto pixels = imageAssetsLoad(path);
+	if (!pixels.has_value()) {
+		std::cerr << pixels.error() << std::endl;
 		return {};
-	}
-
-	int width = 0;
-	int height = 0;
-	int channels = 0;
-	int desired_channels = 3;
-	auto* imageDataRaw = stbi_load(path.c_str(), &width, &height, &channels, desired_channels);
-	if (nullptr == imageDataRaw) {
-		std::cerr << "LEDMatrixDriver: Failed to load image - " << stbi_failure_reason() << "!" << std::endl;
-		return {};
-	}
-
-	size_t numPixels = width * height;
-	size_t numBytes = numPixels * desired_channels;
-
-	auto imageData = std::span<unsigned char>(static_cast<unsigned char*>(imageDataRaw), numBytes);
-
-	std::vector<LEDMatrixPixel> pixels(numPixels, {.red = 0, .green = 0, .blue = 0});
-
-	for (size_t i = 0; i < numBytes; i += desired_channels) {
-		uint8_t r8 = imageData[i];
-		uint8_t g8 = imageData[i + 1];
-		uint8_t b8 = imageData[i + 2];
-
-		LEDMatrixPixel pixel = {.red = r8, .green = g8, .blue = b8};
-		pixels.at(i / desired_channels) = pixel;
 	}
 
 	if (redraw) {
-		setPixels(pixels);
+		setPixels(pixels.value());
 	}
 
-	stbi_image_free(imageDataRaw);
-
-	return pixels;
+	return pixels.value();
 }
 
-// TODO
 void LEDMatrixDriver::showMessage(const std::string& message, float scrollSpeed,
 	const LEDMatrixRGBColor& textColor, const LEDMatrixRGBColor& backColor)
 {
-    // def _load_text_assets(self, text_image_file, text_file):
-    //     """
-    //     Internal. Builds a character indexed dictionary of pixels used by the
-    //     show_message function below
-    //     """
-    //     text_pixels = self.load_image(text_image_file, False)
-    //     with open(text_file, 'r') as f:
-    //         loaded_text = f.read()
-    //     self._text_dict = {}
-    //     for index, s in enumerate(loaded_text):
-    //         start = index * 40
-    //         end = start + 40
-    //         char = text_pixels[start:end]
-    //         self._text_dict[s] = char
+	int prevRotation = m_rotation;
+	m_rotation = 90;
 
-    // def _trim_whitespace(self, char):  # For loading text assets only
-    //     """
-    //     Internal. Trims white space pixels from the front and back of loaded
-    //     text characters
-    //     """
-    //     psum = lambda x: sum(sum(x, []))
-    //     if psum(char) > 0:
-    //         is_empty = True
-    //         while is_empty:  # From front
-    //             row = char[0:8]
-    //             is_empty = psum(row) == 0
-    //             if is_empty:
-    //                 del char[0:8]
-    //         is_empty = True
-    //         while is_empty:  # From back
-    //             row = char[-8:]
-    //             is_empty = psum(row) == 0
-    //             if is_empty:
-    //                 del char[-8:]
-    //     return char
+	LEDMatrixRGBColor dummyColor {};
+	std::vector<LEDMatrixPixel> stringPadding(64, dummyColor);
+	std::vector<LEDMatrixPixel> letterPadding(8, dummyColor);
+	std::vector<LEDMatrixPixel> scrollPixels;
 
-	// def show_message(
-	//         self,
-	//         text_string,
-	//         scroll_speed=.1,
-	//         text_colour=[255, 255, 255],
-	//         back_colour=[0, 0, 0]
-	//     ):
-	//     """
-	//     Scrolls a string of text across the LED matrix using the specified
-	//     speed and colours
-	//     """
-	//     # We must rotate the pixel map left through 90 degrees when drawing
-	//     # text, see _load_text_assets
-	//     previous_rotation = self._rotation
-	//     self._rotation -= 90
-	//     if self._rotation < 0:
-	//         self._rotation = 270
-	//     dummy_colour = [None, None, None]
-	//     string_padding = [dummy_colour] * 64
-	//     letter_padding = [dummy_colour] * 8
-	//     # Build pixels from dictionary
-	//     scroll_pixels = []
-	//     scroll_pixels.extend(string_padding)
-	//     for s in text_string:
-	//         scroll_pixels.extend(self._trim_whitespace(self._get_char_pixels(s)))
-	//         scroll_pixels.extend(letter_padding)
-	//     scroll_pixels.extend(string_padding)
-	//     # Recolour pixels as necessary
-	//     coloured_pixels = [
-	//         text_colour if pixel == [255, 255, 255] else back_colour
-	//         for pixel in scroll_pixels
-	//     ]
-	//     # Shift right by 8 pixels per frame to scroll
-	//     scroll_length = len(coloured_pixels) // 8
-	//     for i in range(scroll_length - 8):
-	//         start = i * 8
-	//         end = start + 64
-	//         self.set_pixels(coloured_pixels[start:end])
-	//         time.sleep(scroll_speed)
-	//     self._rotation = previous_rotation
+	scrollPixels.insert(scrollPixels.end(), stringPadding.begin(), stringPadding.end());
+
+	for (const auto& s : message) {
+		char charKey = (m_charsMap.contains(s)) ? s : '?';
+
+		std::vector charPixels = m_charsMap.at(charKey);
+		if (charKey != ' ') {
+			textAssetsTrimCharWhitespaces(charPixels);
+		}
+
+		scrollPixels.insert(scrollPixels.end(), charPixels.begin(), charPixels.end());
+		scrollPixels.insert(scrollPixels.end(), letterPadding.begin(), letterPadding.end());
+	}
+
+	scrollPixels.insert(scrollPixels.end(), stringPadding.begin(), stringPadding.end());
+
+	for (auto& px : scrollPixels) {
+		if (px.red == 255 && px.green == 255 && px.blue == 255) {
+			px = textColor;
+		} else {
+			px = backColor;
+		}
+	}
+
+	int scrollLength = std::floor(scrollPixels.size() / 8);
+
+	for (int i = 0; i < scrollLength - 8; ++i) {
+		int start = i * 8;
+		setPixels(std::span(scrollPixels).subspan(start, 64));
+		std::this_thread::sleep_for(std::chrono::milliseconds((int)(1000 * scrollSpeed)));
+	}
+
+	m_rotation = prevRotation;
 }
 
-// TODO
 void LEDMatrixDriver::showLetter(
 	char letter, const LEDMatrixRGBColor& textColor, const LEDMatrixRGBColor& backColor)
 {
-	// def show_letter(
-	//         self,
-	//         s,
-	//         text_colour=[255, 255, 255],
-	//         back_colour=[0, 0, 0]
-	//     ):
-	//     """
-	//     Displays a single text character on the LED matrix using the specified
-	//     colours
-	//     """
-	//     if len(s) > 1:
-	//         raise ValueError('Only one character may be passed into this method')
-	//     # We must rotate the pixel map left through 90 degrees when drawing
-	//     # text, see _load_text_assets
-	//     previous_rotation = self._rotation
-	//     self._rotation -= 90
-	//     if self._rotation < 0:
-	//         self._rotation = 270
-	//     dummy_colour = [None, None, None]
-	//     pixel_list = [dummy_colour] * 8
-	//     pixel_list.extend(self._get_char_pixels(s))
-	//     pixel_list.extend([dummy_colour] * 16)
-	//     coloured_pixels = [
-	//         text_colour if pixel == [255, 255, 255] else back_colour
-	//         for pixel in pixel_list
-	//     ]
-	//     self.set_pixels(coloured_pixels)
-	//     self._rotation = previous_rotation
+
+	int prevRotation = m_rotation;
+	m_rotation = 90;
+
+	LEDMatrixRGBColor dummyColor {};
+	std::vector<LEDMatrixPixel> startPadding(8, dummyColor);
+	std::vector<LEDMatrixPixel> endPadding(16, dummyColor);
+	std::vector<LEDMatrixPixel> letterPixels;
+
+	letterPixels.insert(letterPixels.end(), startPadding.begin(), startPadding.end());
+
+	char charKey = (m_charsMap.contains(letter)) ? letter : '?';
+
+	std::vector charPixels = m_charsMap.at(charKey);
+
+	letterPixels.insert(letterPixels.end(), charPixels.begin(), charPixels.end());
+	letterPixels.insert(letterPixels.end(), endPadding.begin(), endPadding.end());
+
+	for (auto& px : letterPixels) {
+		if (px.red == 255 && px.green == 255 && px.blue == 255) {
+			px = textColor;
+		} else {
+			px = backColor;
+		}
+	}
+
+	setPixels(letterPixels);
+
+	m_rotation = prevRotation;
 }

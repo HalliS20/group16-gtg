@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <span>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 /**
@@ -56,12 +57,15 @@ public:
 	 * @param bytesPerPixel - bytes per pixel in the framebuffer.
 	 * @param width - width of the screen represented by the framebuffer in pixels.
 	 * @param height - height of the screen represented by the framebuffer in pixels.
-	 * @return std::expected<LEDMatrixDriver, std::string> - an std::expected object, .has_value() is
-	 * true if the call has succeeded (the actual driver object is then retrievable with .value()),
-	 * otherwise check .error() for more details.
+	 * @param textAssetsPath - path to a .txt file containing a text string that corresponds to the imageAssets image.
+	 * @param imageAssetsPath - path to an image containing letter pixels for text rendering.
+	 * @return std::expected<LEDMatrixDriver, std::string> - an std::expected object, .has_value()
+	 * is true if the call has succeeded (the actual driver object is then retrievable with
+	 * .value()), otherwise check .error() for more details.
 	 */
 	static std::expected<LEDMatrixDriver, std::string> create(const std::filesystem::path& fbDev,
-		size_t fbSize, size_t bytesPerPixel, size_t width, size_t height);
+		size_t fbSize, size_t bytesPerPixel, size_t width, size_t height,
+		const std::filesystem::path& textAssetsPath, const std::filesystem::path& imageAssetsPath);
 
 	/**
 	 * @brief Apply a counter-clockwise rotation. The rotation is applied on the current
@@ -170,15 +174,16 @@ public:
 	void clear(const LEDMatrixRGBColor& color);
 
 private:
-	LEDMatrixDriver(
-		std::span<uint8_t> fbMmapAddr, int fbFd, size_t bytesPerPixel, size_t width, size_t height);
+	LEDMatrixDriver(std::span<uint8_t> fbMmapAddr, int fbFd, size_t bytesPerPixel, size_t width,
+		size_t height, std::unordered_map<char, std::vector<LEDMatrixPixel>> charsMap);
 
 	std::span<uint8_t> m_fbMmapAddr;
 	int m_fbFd;
 	size_t m_bytesPerPixel;
 	size_t m_width;
 	size_t m_height;
-	unsigned int m_rotation;
+	int m_rotation;
+	std::unordered_map<char, std::vector<LEDMatrixPixel>> m_charsMap;
 };
 
 #endif
