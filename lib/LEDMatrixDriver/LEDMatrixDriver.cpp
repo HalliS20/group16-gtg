@@ -198,8 +198,6 @@ textAssetsLoad(const fs::path& textImagePath, const fs::path& textFilePath)
 		charsMap[c] = charPixels;
 	}
 
-	std::cout << "created charsMap" << std::endl;
-
 	return charsMap;
 }
 
