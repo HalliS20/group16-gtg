@@ -9,6 +9,8 @@
 #define SENSEHAT_FB_BYTES_PER_PX 2LU // 16 bit per pixel RGB565
 #define SENSEHAT_FB_WIDTH_PX 8LU
 #define SENSEHAT_FB_HEIGHT_PX 8LU
+#define SENSEHAT_TEXT_FILE_ASSET_PATH "/workspace/assets/sense_hat_text.txt"
+#define SENSEHAT_IMAGE_FILE_ASSET_PATH "/workspace/assets/sense_hat_text.png"
 
 static const std::array<LEDMatrixDriver::LEDMatrixPixel, SENSEHAT_FB_HEIGHT_PX * SENSEHAT_FB_WIDTH_PX> demoPixels2
 	= {{
@@ -149,7 +151,8 @@ static const std::array<LEDMatrixDriver::LEDMatrixPixel, SENSEHAT_FB_HEIGHT_PX *
 inline void run_ledmatrixdriver_example1()
 {
 	auto driverResult = LEDMatrixDriver::create(SENSEHAT_FB_NAME, SENSEHAT_FB_SIZE,
-		SENSEHAT_FB_BYTES_PER_PX, SENSEHAT_FB_WIDTH_PX, SENSEHAT_FB_HEIGHT_PX);
+		SENSEHAT_FB_BYTES_PER_PX, SENSEHAT_FB_WIDTH_PX, SENSEHAT_FB_HEIGHT_PX,
+		SENSEHAT_TEXT_FILE_ASSET_PATH, SENSEHAT_IMAGE_FILE_ASSET_PATH);
 	if (!driverResult.has_value()) {
 		std::cerr << driverResult.error() << '\n';
 		return;
@@ -225,6 +228,15 @@ inline void run_ledmatrixdriver_example1()
 	sleep(1);
 	driver.loadImage("/workspace/assets/straightUp.png", true);
 	sleep(1);
+
+	driver.showMessage("Hello from C++", 0.1, {.red = 255, .green = 255, .blue = 255},
+		{.red = 0, .green = 0, .blue = 0});
+
+	sleep(1);
+	driver.showLetter(
+		'A', {.red = 255, .green = 255, .blue = 255}, {.red = 0, .green = 0, .blue = 0});
+
+	sleep(5);
 
 	driver.clear({.red = 0, .green = 0, .blue = 0});
 }
