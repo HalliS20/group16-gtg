@@ -22,6 +22,6 @@ target_compile_options(gtg PRIVATE
   -fsanitize=address,undefined -fno-sanitize-recover=all
   -fno-exceptions
 )
-target_link_options(gtg PRIVATE -fsanitize=address,undefined)
+target_link_options(gtg PRIVATE -fsanitize=undefined)
 target_link_libraries(gtg PRIVATE atomic)
 
