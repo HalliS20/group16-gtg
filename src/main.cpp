@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "ledmatrixdriver_examples.hpp"
 #include "rtimulib_examples.hpp"
 
 using std::cout;
@@ -14,5 +15,6 @@ int main()
 {
 	hello("someone");
 
+	run_ledmatrixdriver_example1();
 	run_rtimulib_example1();
 }

@@ -12,7 +12,7 @@ add_subdirectory(lib)
 add_executable(gtg src/main.cpp)
 target_include_directories(gtg PRIVATE src)
 
-target_link_libraries(gtg PRIVATE RTIMULib)
+target_link_libraries(gtg PRIVATE RTIMULib LEDMatrixDriverLib)
 
 target_compile_options(gtg PRIVATE
   -Wall -Wextra -Wpedantic
@@ -20,5 +20,6 @@ target_compile_options(gtg PRIVATE
   -fstack-protector-strong
   -Og -g3 -fno-omit-frame-pointer
   -fsanitize=address,undefined -fno-sanitize-recover=all
+  -fno-exceptions
 )
 target_link_options(gtg PRIVATE -fsanitize=address,undefined)
