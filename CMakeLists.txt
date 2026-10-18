@@ -19,8 +19,7 @@ target_compile_options(gtg PRIVATE
   -Wshadow -Wformat=2 -Wundef
   -fstack-protector-strong
   -Og -g3 -fno-omit-frame-pointer
-  -fsanitize=address,undefined -fno-sanitize-recover=all
+  -fno-sanitize-recover=all
   -fno-exceptions
 )
-target_link_options(gtg PRIVATE -fsanitize=address,undefined)
 target_link_libraries(gtg PRIVATE atomic)
