@@ -6,24 +6,31 @@
 
 namespace cb {
 
-template <typename T = double>
-class CircularBuffer {
+template <typename T = double> class CircularBuffer {
 public:
-	explicit CircularBuffer(int capacity) : buf_(capacity > 0 ? static_cast<std::size_t>(capacity) : 0){}
-
-	void add(const T& value) {
-		buf_[head_] = value;
-		++head_;
-		if (head_ >= buf_.size())
-			head_ = 0;
-		if (size_ < buf_.size())
-			++size_;
+	explicit CircularBuffer(int capacity)
+		: buf_(capacity > 0 ? static_cast<std::size_t>(capacity) : 0)
+	{
 	}
 
-	std::vector<T> get(int amount) const {
+	void add(const T& value)
+	{
+		buf_[head_] = value;
+		++head_;
+		if (head_ >= buf_.size()) {
+			head_ = 0;
+		}
+		if (size_ < buf_.size()) {
+			++size_;
+		}
+	}
+
+	std::vector<T> get(int amount) const
+	{
 		std::vector<T> out;
-		if (amount <= 0)
+		if (amount <= 0) {
 			return out;
+		}
 
 		const std::size_t n = std::min(static_cast<std::size_t>(amount), size_);
 		out.reserve(n);
@@ -33,7 +40,8 @@ public:
 		return out;
 	}
 
-	size_t size() {
+	size_t size()
+	{
 		return size_;
 	}
 
@@ -43,4 +51,4 @@ private:
 	std::size_t size_ = 0;
 };
 
-}
+} // namespace cb

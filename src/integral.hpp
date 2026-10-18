@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstddef>
-
 namespace integral {
 
 inline double linearIntegral(double a, double b, double x1)
