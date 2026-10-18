@@ -23,3 +23,4 @@ target_compile_options(gtg PRIVATE
   -fno-exceptions
 )
 target_link_options(gtg PRIVATE -fsanitize=address,undefined)
+target_link_libraries(gtg PRIVATE atomic)

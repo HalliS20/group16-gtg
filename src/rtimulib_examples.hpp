@@ -88,9 +88,10 @@ inline int run_rtimulib_example1()
 	lr::LineFit x_accel_line, y_accel_line, z_accel_line;
 
 	//  now just process data
-
+	std::cout << imu->IMUGetPollInterval() << std::endl;
 	while (1) {
 		//  poll at the rate recommended by the IMU
+
 
 		usleep(imu->IMUGetPollInterval() * 1000);
 
