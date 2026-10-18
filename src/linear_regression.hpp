@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <vector>
+#include <cstdint>
 
 namespace lr {
 
@@ -11,17 +12,16 @@ struct LineFit {
 	bool valid = false;
 };
 
-inline LineFit fitLine(const std::vector<double>& y, double dx = 1.0)
+inline LineFit fitLine(const std::vector<double>& y, const std::vector<uint64_t>& ts)
 {
 	LineFit fit;
 	const std::size_t count = y.size();
-	if (count < 2)
-		return fit;
+	if (count < 2 || ts.size() != count) return fit;
 
 	const double n = static_cast<double>(count);
 	double sumX = 0.0, sumY = 0.0, sumXY = 0.0, sumXX = 0.0;
 	for (std::size_t i = 0; i < count; ++i) {
-		const double x = static_cast<double>(i) * dx;
+		const double x = static_cast<double>(ts[i] - ts[0]) * 1e-6;
 		sumX += x;
 		sumY += y[i];
 		sumXY += x * y[i];
