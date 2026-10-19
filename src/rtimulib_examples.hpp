@@ -99,7 +99,7 @@ inline int run_rtimulib_example1()
 	size_t samples_since_position = 0;
 
 	const uint64_t stationary_hold_time = 500000;
-	bool stationary_tracking = false;
+	bool stationary = false;
 	uint64_t stationary_since = 0;
 
 	lr::LineFit x_accel_line;
@@ -124,20 +124,7 @@ inline int run_rtimulib_example1()
 				double y_residual = linearAccel.y();
 				double z_residual = linearAccel.z();
 
-				const double residual_mag = std::sqrt((x_residual * x_residual)
-					+ (y_residual * y_residual) + (z_residual * z_residual));
-
-				if (residual_mag < accel_deadband) {
-					if (!stationary_tracking) {
-						stationary_since = imuData.timestamp;
-						stationary_tracking = true;
-					} else if ((imuData.timestamp - stationary_since) >= stationary_hold_time) {
-						x_velocity = y_velocity = z_velocity = 0;
-					}
-				} else {
-					stationary_tracking = false;
-				}
-
+				// clearing out acceleration noise
 				if (std::abs(x_residual) < accel_deadband) {
 					x_residual = 0;
 				}
@@ -152,6 +139,21 @@ inline int run_rtimulib_example1()
 				y_accel_buf.add(y_residual);
 				z_accel_buf.add(z_residual);
 				accel_ts.add(imuData.timestamp);
+
+				// clearing out velocity noise
+				const double total_magnitude = std::sqrt((x_residual * x_residual)
+					+ (y_residual * y_residual) + (z_residual * z_residual));
+
+				// might want to set this accel deadband as seperate variable, this might be too aggressive
+				if (total_magnitude >= accel_deadband) {
+					stationary = false;
+				} else if (!stationary) {
+					stationary = true;
+					stationary_since = imuData.timestamp;
+				}
+				if (stationary && (imuData.timestamp - stationary_since) >= stationary_hold_time) {
+					x_velocity = y_velocity = z_velocity = 0;
+				}
 
 				samples_since_velocity++;
 
