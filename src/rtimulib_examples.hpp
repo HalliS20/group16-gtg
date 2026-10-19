@@ -38,7 +38,7 @@ struct accel {
 	cb::CircularBuffer<uint64_t> pos_ts = cb::CircularBuffer<uint64_t>(buffer_length);
 };
 
-accel initAccel()
+RTIMU* initIMU()
 {
 	RTIMUSettings* settings = new RTIMUSettings("RTIMULib");
 	RTIMU* imu = RTIMU::createIMU(settings);
@@ -53,9 +53,7 @@ accel initAccel()
 	imu->setGyroEnable(true);
 	imu->setAccelEnable(true);
 	imu->setCompassEnable(true);
-	accel ret;
-	delete settings;
-	return ret;
+	return imu;
 }
 
 bool allZero(const std::vector<double>& v)
@@ -177,11 +175,9 @@ bool updatePosition(accel& accInstance)
 
 inline int run_rtimulib_example1()
 {
-	RTIMUSettings* settings = new RTIMUSettings("RTIMULib");
+	RTIMU* imu = initIMU();
 
-	RTIMU* imu = RTIMU::createIMU(settings);
-
-	accel accInstance = initAccel();
+	accel accInstance;
 
 	std::size_t sample_count = 0;
 	while (true) {
