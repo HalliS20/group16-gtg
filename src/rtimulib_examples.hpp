@@ -50,9 +50,6 @@ inline int run_rtimulib_example1()
 
 	const double G = 9.80665;
 
-	// Residuals smaller than this (in g) are treated as sensor noise and
-	// zeroed out before integration, instead of being integrated as if
-	// they were real motion.
 	const double accel_deadband = 0.05;
 
 	const uint64_t rate_update_interval = 1000000; // us, update sample rate every 1 second
@@ -65,13 +62,13 @@ inline int run_rtimulib_example1()
 	cb::CircularBuffer<double> y_vel_buf(buffer_length);
 	cb::CircularBuffer<double> z_vel_buf(buffer_length);
 
-	cb::CircularBuffer<double> x_pos_buf(buffer_length);
-	cb::CircularBuffer<double> y_pos_buf(buffer_length);
-	cb::CircularBuffer<double> z_pos_buf(buffer_length);
+	// cb::CircularBuffer<double> x_pos_buf(buffer_length);
+	// cb::CircularBuffer<double> y_pos_buf(buffer_length);
+	// cb::CircularBuffer<double> z_pos_buf(buffer_length);
 
 	cb::CircularBuffer<uint64_t> accel_ts(buffer_length);
 	cb::CircularBuffer<uint64_t> vel_ts(buffer_length);
-	cb::CircularBuffer<uint64_t> pos_ts(buffer_length);
+	// cb::CircularBuffer<uint64_t> pos_ts(buffer_length);
 
 	double x_velocity = 0;
 	double y_velocity = 0;
@@ -100,6 +97,11 @@ inline int run_rtimulib_example1()
 	bool position_timer_started = false;
 	uint64_t position_timer = 0;
 	size_t samples_since_position = 0;
+
+	const uint64_t stationary_hold_time = 500000;
+	bool stationary_tracking = false;
+	uint64_t stationary_since = 0;
+
 	lr::LineFit x_accel_line;
 	lr::LineFit y_accel_line;
 	lr::LineFit z_accel_line;
@@ -116,17 +118,26 @@ inline int run_rtimulib_example1()
 			RTIMU_DATA imuData = imu->getIMUData();
 
 			if (imuData.accelValid) {
-				// imuData.accel still contains gravity; getAccelResiduals() rotates the
-				// gravity vector into the sensor frame using the fused orientation and
-				// subtracts it, leaving true linear acceleration (~0 at rest).
 				RTVector3 linearAccel = imu->getAccelResiduals();
 
 				double x_residual = linearAccel.x();
 				double y_residual = linearAccel.y();
 				double z_residual = linearAccel.z();
 
-				// Treat anything inside the noise floor as zero so it doesn't get
-				// integrated into velocity/position while the board is still.
+				const double residual_mag = std::sqrt((x_residual * x_residual)
+					+ (y_residual * y_residual) + (z_residual * z_residual));
+
+				if (residual_mag < accel_deadband) {
+					if (!stationary_tracking) {
+						stationary_since = imuData.timestamp;
+						stationary_tracking = true;
+					} else if ((imuData.timestamp - stationary_since) >= stationary_hold_time) {
+						x_velocity = y_velocity = z_velocity = 0;
+					}
+				} else {
+					stationary_tracking = false;
+				}
+
 				if (std::abs(x_residual) < accel_deadband) {
 					x_residual = 0;
 				}
@@ -195,11 +206,6 @@ inline int run_rtimulib_example1()
 						position_timer_started = true;
 						samples_since_position = 0;
 					}
-
-					std::println("Velocity  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", x_velocity,
-						y_velocity, z_velocity);
-
-					fflush(stdout);
 				}
 
 				velocity_timer = imuData.timestamp;
@@ -226,6 +232,8 @@ inline int run_rtimulib_example1()
 					y_position += integral::linearIntegral(y_pos_line.slope, y_pos_line.intercept, T);
 					z_position += integral::linearIntegral(z_pos_line.slope, z_pos_line.intercept, T);
 
+					std::println("Velocity  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", x_velocity,
+						y_velocity, z_velocity);
 					std::println("Position  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", x_position,
 						y_position, z_position);
 
