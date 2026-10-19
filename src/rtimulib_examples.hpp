@@ -14,12 +14,6 @@ constexpr int buffer_length = 1000;
 
 inline int run_rtimulib_example1()
 {
-	// int sampleCount = 0;
-	// int sampleRate = 0;
-	uint64_t rateTimer = 0;
-	uint64_t displayTimer = 0;
-	uint64_t now = 0;
-
 	RTIMUSettings* settings = new RTIMUSettings("RTIMULib");
 
 	RTIMU* imu = RTIMU::createIMU(settings);
@@ -46,13 +40,9 @@ inline int run_rtimulib_example1()
 		humidity->humidityInit();
 	}
 
-	rateTimer = displayTimer = RTMath::currentUSecsSinceEpoch();
-
 	const double G = 9.80665;
 
 	const double accel_deadband = 0.05;
-
-	const uint64_t rate_update_interval = 1000000; // us, update sample rate every 1 second
 
 	cb::CircularBuffer<double> x_accel_buf(buffer_length);
 	cb::CircularBuffer<double> y_accel_buf(buffer_length);
@@ -164,10 +154,6 @@ inline int run_rtimulib_example1()
 				}
 			}
 
-			// sampleCount++;
-
-			now = RTMath::currentUSecsSinceEpoch();
-
 			if (velocity_timer_started && imuData.accelValid
 				&& (imuData.timestamp - velocity_timer) >= velocity_calculation_interval) {
 
@@ -244,14 +230,6 @@ inline int run_rtimulib_example1()
 
 				position_timer = imuData.timestamp;
 				samples_since_position = 0;
-			}
-
-			//  update rate every second
-
-			if ((now - rateTimer) > rate_update_interval) {
-				// sampleRate = sampleCount;
-				// sampleCount = 0;
-				rateTimer = now;
 			}
 		}
 	}
