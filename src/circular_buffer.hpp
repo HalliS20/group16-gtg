@@ -25,19 +25,24 @@ public:
 		}
 	}
 
-	std::vector<T> get(int amount) const
+	std::vector<T> get(std::size_t amount) const
 	{
 		std::vector<T> out;
-		if (amount <= 0) {
+		if (amount == 0) {
 			return out;
 		}
 
-		const std::size_t n = std::min(static_cast<std::size_t>(amount), size_);
+		const std::size_t n = std::min(amount, size_);
 		out.reserve(n);
 		for (std::size_t i = 0; i < n; ++i) {
 			out.push_back(buf_[(head_ + buf_.size() - n + i) % buf_.size()]);
 		}
 		return out;
+	}
+
+	T getLast() const
+	{
+		return buf_[(head_ + buf_.size() - 1) % buf_.size()];
 	}
 
 	size_t size()
