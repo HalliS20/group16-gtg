@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <print>
@@ -48,6 +49,11 @@ inline int run_rtimulib_example1()
 	rateTimer = displayTimer = RTMath::currentUSecsSinceEpoch();
 
 	const double G = 9.80665;
+
+	// Residuals smaller than this (in g) are treated as sensor noise and
+	// zeroed out before integration, instead of being integrated as if
+	// they were real motion.
+	const double accel_deadband = 0.05;
 
 	const uint64_t rate_update_interval = 1000000; // us, update sample rate every 1 second
 
@@ -110,9 +116,30 @@ inline int run_rtimulib_example1()
 			RTIMU_DATA imuData = imu->getIMUData();
 
 			if (imuData.accelValid) {
-				x_accel_buf.add(imuData.accel.x());
-				y_accel_buf.add(imuData.accel.y());
-				z_accel_buf.add(imuData.accel.z());
+				// imuData.accel still contains gravity; getAccelResiduals() rotates the
+				// gravity vector into the sensor frame using the fused orientation and
+				// subtracts it, leaving true linear acceleration (~0 at rest).
+				RTVector3 linearAccel = imu->getAccelResiduals();
+
+				double x_residual = linearAccel.x();
+				double y_residual = linearAccel.y();
+				double z_residual = linearAccel.z();
+
+				// Treat anything inside the noise floor as zero so it doesn't get
+				// integrated into velocity/position while the board is still.
+				if (std::abs(x_residual) < accel_deadband) {
+					x_residual = 0;
+				}
+				if (std::abs(y_residual) < accel_deadband) {
+					y_residual = 0;
+				}
+				if (std::abs(z_residual) < accel_deadband) {
+					z_residual = 0;
+				}
+
+				x_accel_buf.add(x_residual);
+				y_accel_buf.add(y_residual);
+				z_accel_buf.add(z_residual);
 				accel_ts.add(imuData.timestamp);
 
 				samples_since_velocity++;
