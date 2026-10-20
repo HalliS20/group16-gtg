@@ -14,8 +14,8 @@ constexpr int buffer_length = 1000;
 constexpr double G = 9.80665;
 constexpr double accel_deadband = 0.05;
 
-constexpr std::size_t velocity_window_samples = 10;
-constexpr std::size_t position_window_samples = 10;
+constexpr std::size_t velocity_batch_samples = 10;
+constexpr std::size_t position_batch_samples = 10;
 
 constexpr std::size_t print_sample_interval = 100;
 
@@ -107,15 +107,14 @@ void zeroVelocity(accel& accInstance, uint64_t ts)
 	accInstance.vel_ts.add(ts);
 }
 
-bool updateVelocity(accel& accInstance)
+bool updateVelocity(accel& accInstance, std::size_t window_samples)
 {
-	const std::vector<uint64_t> window_ts = accInstance.accel_ts.get(velocity_window_samples);
+	const std::vector<uint64_t> window_ts = accInstance.accel_ts.get(window_samples);
 	if (window_ts.size() < 2) {
 		return false;
 	}
 
 	const double T = static_cast<double>(window_ts.back() - window_ts.front()) * 1e-6;
-	const double dt = static_cast<double>(window_ts.back() - window_ts[window_ts.size() - 2]) * 1e-6;
 
 	const lr::LineFit x_line = lr::fitLine(accInstance.x_accel_buf.get(window_ts.size()), window_ts);
 	const lr::LineFit y_line = lr::fitLine(accInstance.y_accel_buf.get(window_ts.size()), window_ts);
@@ -128,22 +127,21 @@ bool updateVelocity(accel& accInstance)
 	const double y_prev = accInstance.y_vel_buf.size() > 0 ? accInstance.y_vel_buf.getLast() : 0.0;
 	const double z_prev = accInstance.z_vel_buf.size() > 0 ? accInstance.z_vel_buf.getLast() : 0.0;
 
-	accInstance.x_vel_buf.add(x_prev + (((x_line.slope * T) + x_line.intercept) * dt * G));
-	accInstance.y_vel_buf.add(y_prev + (((y_line.slope * T) + y_line.intercept) * dt * G));
-	accInstance.z_vel_buf.add(z_prev + (((z_line.slope * T) + z_line.intercept) * dt * G));
+	accInstance.x_vel_buf.add(x_prev + (integral::linearIntegral(x_line.slope, x_line.intercept, T) * G));
+	accInstance.y_vel_buf.add(y_prev + (integral::linearIntegral(y_line.slope, y_line.intercept, T) * G));
+	accInstance.z_vel_buf.add(z_prev + (integral::linearIntegral(z_line.slope, z_line.intercept, T) * G));
 	accInstance.vel_ts.add(window_ts.back());
 	return true;
 }
 
-bool updatePosition(accel& accInstance)
+bool updatePosition(accel& accInstance, std::size_t window_samples)
 {
-	const std::vector<uint64_t> window_ts = accInstance.vel_ts.get(position_window_samples);
+	const std::vector<uint64_t> window_ts = accInstance.vel_ts.get(window_samples);
 	if (window_ts.size() < 2) {
 		return false;
 	}
 
 	const double T = static_cast<double>(window_ts.back() - window_ts.front()) * 1e-6;
-	const double dt = static_cast<double>(window_ts.back() - window_ts[window_ts.size() - 2]) * 1e-6;
 
 	const lr::LineFit x_line = lr::fitLine(accInstance.x_vel_buf.get(window_ts.size()), window_ts);
 	const lr::LineFit y_line = lr::fitLine(accInstance.y_vel_buf.get(window_ts.size()), window_ts);
@@ -156,9 +154,9 @@ bool updatePosition(accel& accInstance)
 	const double y_prev = accInstance.y_pos_buf.size() > 0 ? accInstance.y_pos_buf.getLast() : 0.0;
 	const double z_prev = accInstance.z_pos_buf.size() > 0 ? accInstance.z_pos_buf.getLast() : 0.0;
 
-	accInstance.x_pos_buf.add(x_prev + (((x_line.slope * T) + x_line.intercept) * dt));
-	accInstance.y_pos_buf.add(y_prev + (((y_line.slope * T) + y_line.intercept) * dt));
-	accInstance.z_pos_buf.add(z_prev + (((z_line.slope * T) + z_line.intercept) * dt));
+	accInstance.x_pos_buf.add(x_prev + integral::linearIntegral(x_line.slope, x_line.intercept, T));
+	accInstance.y_pos_buf.add(y_prev + integral::linearIntegral(y_line.slope, y_line.intercept, T));
+	accInstance.z_pos_buf.add(z_prev + integral::linearIntegral(z_line.slope, z_line.intercept, T));
 	accInstance.pos_ts.add(window_ts.back());
 	return true;
 }
@@ -179,6 +177,9 @@ inline int run_rtimulib_example1()
 
 	accel accInstance;
 
+	std::size_t samples_since_velocity = 0;
+	std::size_t samples_since_position = 0;
+
 	std::size_t sample_count = 0;
 	while (true) {
 
@@ -198,8 +199,17 @@ inline int run_rtimulib_example1()
 				zeroVelocity(accInstance, imuData.timestamp);
 			}
 
-			if (updateVelocity(accInstance)) {
-				updatePosition(accInstance);
+			++samples_since_velocity;
+			if (samples_since_velocity >= velocity_batch_samples) {
+				if (updateVelocity(accInstance, samples_since_velocity + 1)) {
+					++samples_since_position;
+				}
+				samples_since_velocity = 0;
+			}
+
+			if (samples_since_position >= position_batch_samples) {
+				updatePosition(accInstance, samples_since_position + 1);
+				samples_since_position = 0;
 			}
 
 			++sample_count;
