@@ -14,23 +14,23 @@
 
 namespace Logger {
 
-inline void logInfo(std::string module, std::string info)
+inline void logInfo(const std::string& module, const std::string& info)
 {
 	std::cout << "[INFO]\t" << module << ": " << info << std::endl;
 }
 
-inline void logError(std::string module, std::string error)
+inline void logError(const std::string& module, const std::string& error)
 {
 	std::cout << "[ERROR]\t" << module << ": " << error << std::endl;
 }
-inline void logDebug(std::string module, std::string debug)
+inline void logDebug(const std::string& module, const std::string& debug)
 {
 	std::cout << "[DEBUG]\t" << module << ": " << debug << std::endl;
 }
-inline void logWarning(std::string module, std::string warning)
+inline void logWarning(const std::string& module, const std::string& warning)
 {
 	std::cout << "[WARN]\t" << module << ": " << warning << std::endl;
 }
 
-} // namespace log
+} // namespace Logger
 #endif

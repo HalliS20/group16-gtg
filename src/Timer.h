@@ -4,7 +4,7 @@
 
 class Timer {
 public:
-	Timer(int initial_ms);
+	explicit Timer(int initial_ms);
 
 	void setInterval(int new_ms);
 	void setCallback(std::function<void()> callback);

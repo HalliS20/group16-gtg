@@ -249,11 +249,6 @@ bool MovementTelemetry::init()
 	return true;
 };
 
-bool MovementTelemetry::teardown()
-{
-	return true;
-};
-
 void MovementTelemetry::startRecording()
 {
 	using namespace Logger;

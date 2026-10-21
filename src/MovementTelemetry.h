@@ -8,15 +8,14 @@
 #ifndef _MOVEMENT_TELEMETRY_H
 #define _MOVEMENT_TELEMETRY_H
 
+#include <atomic>
 #include <memory>
 #include <thread>
-#include <atomic>
 
 #include "RTIMULib.h"
 
 class MovementTelemetry {
 public:
-
 	/**
 	 * @brief
 	 *
@@ -24,14 +23,6 @@ public:
 	 * @return false
 	 */
 	bool init();
-
-	/**
-	 * @brief
-	 *
-	 * @return true
-	 * @return false
-	 */
-	bool teardown();
 
 	/**
 	 * @brief
