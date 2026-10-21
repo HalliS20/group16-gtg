@@ -25,13 +25,11 @@ void Timer::start()
 	}
 	m_running = true;
 
-	std::function<void()> callback = m_callback;
-
-	m_timerThread = std::thread([this, callback]() {
+	m_timerThread = std::thread([this]() {
 		while (m_running) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(m_interval_ms.load()));
 			if (m_running) {
-				callback();
+				m_callback();
 			}
 		}
 	});

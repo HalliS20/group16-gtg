@@ -1,3 +1,6 @@
+#ifndef _TIMER_H
+#define _TIMER_H
+
 #include <atomic>
 #include <functional>
 #include <thread>
@@ -18,3 +21,5 @@ private:
 	std::thread m_timerThread;
 	std::function<void()> m_callback;
 };
+
+#endif
