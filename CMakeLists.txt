@@ -12,6 +12,7 @@ add_subdirectory(lib)
 add_executable(gtg
 	src/main.cpp
 	src/MovementTelemetry.cpp
+	src/Timer.cpp
 )
 target_include_directories(gtg PRIVATE src)
 
