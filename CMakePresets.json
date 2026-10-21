@@ -1,13 +1,49 @@
 {
-  "version": 3,
-  "configurePresets": [
-    {
-      "name": "default",
-      "generator": "Ninja",
-      "binaryDir": "build",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
-    }
-  ]
+	"version": 3,
+	"configurePresets": [
+		{
+			"name": "cross-aarch64-release",
+			"displayName": "Linux (aarch64)",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/cmake/aarch64",
+			"toolchainFile": "${sourceDir}/cmake/toolchains/cross-x86_64-to-aarch64-gnu.cmake",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release"
+			}
+		},
+		{
+			"name": "cross-aarch64-debug",
+			"displayName": "Linux (aarch64)",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/cmake/aarch64-debug",
+			"toolchainFile": "${sourceDir}/cmake/toolchains/cross-x86_64-to-aarch64-gnu.cmake",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		},
+		{
+			"name": "native-x86_64-debug",
+			"displayName": "Linux (x86_64)",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/cmake/x86_64-debug",
+			"toolchainFile": "${sourceDir}/cmake/toolchains/native-x86_64-gnu.cmake",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		}
+	],
+	"buildPresets": [
+		{
+			"name": "cross-aarch64-release",
+			"configurePreset": "cross-aarch64-release"
+		},
+		{
+			"name": "cross-aarch64-debug",
+			"configurePreset": "cross-aarch64-debug"
+		},
+		{
+			"name": "native-x86_64-debug",
+			"configurePreset": "native-x86_64-debug"
+		}
+	]
 }
