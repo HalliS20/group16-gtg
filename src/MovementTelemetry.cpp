@@ -1,64 +1,39 @@
-#include <cmath>
-#include <cstdint>
-#include <cstdio>
-#include <print>
-#include <unistd.h>
-#include <vector>
+#include <cstring>
+#include <iostream>
+#include <memory>
 
+#include "Logger.hpp"
 #include "RTIMULib.h"
 #include "circular_buffer.hpp"
 #include "integral.hpp"
 #include "linear_regression.hpp"
 
-constexpr int buffer_length = 1000;
+#include "MovementTelemetry.h"
 
-inline int run_rtimulib_example1()
+static constexpr const char* MODULE_NAME = "MovementTelemetry";
+
+void MovementTelemetry::sensorProcessingTask()
 {
-	RTIMUSettings* settings = new RTIMUSettings("RTIMULib");
+	using namespace Logger;
+	using namespace cb;
+	using namespace lr;
+	using namespace integral;
 
-	RTIMU* imu = RTIMU::createIMU(settings);
-	RTPressure* pressure = RTPressure::createPressure(settings);
-	RTHumidity* humidity = RTHumidity::createHumidity(settings);
-
-	if ((imu == NULL) || (imu->IMUType() == RTIMU_TYPE_NULL)) {
-		std::println("No IMU found");
-		exit(1);
-	}
-
-	imu->IMUInit();
-
-	imu->setSlerpPower(0.02);
-	imu->setGyroEnable(true);
-	imu->setAccelEnable(true);
-	imu->setCompassEnable(true);
-
-	if (pressure != NULL) {
-		pressure->pressureInit();
-	}
-
-	if (humidity != NULL) {
-		humidity->humidityInit();
-	}
+	constexpr int buffer_length = 1000;
 
 	const double G = 9.80665;
-
 	const double accel_deadband = 0.05;
 
-	cb::CircularBuffer<double> x_accel_buf(buffer_length);
-	cb::CircularBuffer<double> y_accel_buf(buffer_length);
-	cb::CircularBuffer<double> z_accel_buf(buffer_length);
+	CircularBuffer<double> x_accel_buf(buffer_length);
+	CircularBuffer<double> y_accel_buf(buffer_length);
+	CircularBuffer<double> z_accel_buf(buffer_length);
 
-	cb::CircularBuffer<double> x_vel_buf(buffer_length);
-	cb::CircularBuffer<double> y_vel_buf(buffer_length);
-	cb::CircularBuffer<double> z_vel_buf(buffer_length);
+	CircularBuffer<double> x_vel_buf(buffer_length);
+	CircularBuffer<double> y_vel_buf(buffer_length);
+	CircularBuffer<double> z_vel_buf(buffer_length);
 
-	// cb::CircularBuffer<double> x_pos_buf(buffer_length);
-	// cb::CircularBuffer<double> y_pos_buf(buffer_length);
-	// cb::CircularBuffer<double> z_pos_buf(buffer_length);
-
-	cb::CircularBuffer<uint64_t> accel_ts(buffer_length);
-	cb::CircularBuffer<uint64_t> vel_ts(buffer_length);
-	// cb::CircularBuffer<uint64_t> pos_ts(buffer_length);
+	CircularBuffer<uint64_t> accel_ts(buffer_length);
+	CircularBuffer<uint64_t> vel_ts(buffer_length);
 
 	double x_velocity = 0;
 	double y_velocity = 0;
@@ -66,6 +41,10 @@ inline int run_rtimulib_example1()
 	double x_position = 0;
 	double y_position = 0;
 	double z_position = 0;
+
+	double x_last_position = 0.0;
+	double y_last_position = 0.0;
+	double z_last_position = 0.0;
 
 	// ---- Velocity timing -------------------------------------------------
 	// This is the ONLY value you need to change to control the timing.
@@ -92,23 +71,22 @@ inline int run_rtimulib_example1()
 	bool stationary = false;
 	uint64_t stationary_since = 0;
 
-	lr::LineFit x_accel_line;
-	lr::LineFit y_accel_line;
-	lr::LineFit z_accel_line;
-	lr::LineFit x_pos_line;
-	lr::LineFit y_pos_line;
-	lr::LineFit z_pos_line;
+	LineFit x_accel_line;
+	LineFit y_accel_line;
+	LineFit z_accel_line;
+	LineFit x_pos_line;
+	LineFit y_pos_line;
+	LineFit z_pos_line;
 
 	while (true) {
+		std::this_thread::sleep_for(std::chrono::microseconds(m_imu->IMUGetPollInterval() * 1000));
 
-		usleep(imu->IMUGetPollInterval() * 1000);
+		while (m_imu->IMURead()) {
 
-		while (imu->IMURead()) {
-
-			RTIMU_DATA imuData = imu->getIMUData();
+			RTIMU_DATA imuData = m_imu->getIMUData();
 
 			if (imuData.accelValid) {
-				RTVector3 linearAccel = imu->getAccelResiduals();
+				RTVector3 linearAccel = m_imu->getAccelResiduals();
 
 				double x_residual = linearAccel.x();
 				double y_residual = linearAccel.y();
@@ -211,21 +189,26 @@ inline int run_rtimulib_example1()
 					const double T
 						= static_cast<double>(window_ts[window_ts.size() - 1] - window_ts[0]) * 1e-6;
 
-					x_pos_line = lr::fitLine(x_vel_buf.get(window_ts.size()), window_ts);
-					y_pos_line = lr::fitLine(y_vel_buf.get(window_ts.size()), window_ts);
-					z_pos_line = lr::fitLine(z_vel_buf.get(window_ts.size()), window_ts);
+					x_pos_line = fitLine(x_vel_buf.get(window_ts.size()), window_ts);
+					y_pos_line = fitLine(y_vel_buf.get(window_ts.size()), window_ts);
+					z_pos_line = fitLine(z_vel_buf.get(window_ts.size()), window_ts);
 
 					// Integral of velocity (m/s) over T seconds gives position in metres metres
-					x_position += integral::linearIntegral(x_pos_line.slope, x_pos_line.intercept, T);
-					y_position += integral::linearIntegral(y_pos_line.slope, y_pos_line.intercept, T);
-					z_position += integral::linearIntegral(z_pos_line.slope, z_pos_line.intercept, T);
+					x_position += linearIntegral(x_pos_line.slope, x_pos_line.intercept, T);
+					y_position += linearIntegral(y_pos_line.slope, y_pos_line.intercept, T);
+					z_position += linearIntegral(z_pos_line.slope, z_pos_line.intercept, T);
 
-					std::println("Velocity  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", x_velocity,
-						y_velocity, z_velocity);
-					std::println("Position  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", x_position,
-						y_position, z_position);
+					double movement = std::hypot(x_position - x_last_position,
+						y_position - y_last_position, z_position - z_last_position);
 
-					fflush(stdout);
+					m_totalMovement_m.fetch_add(movement);
+
+					x_last_position = x_position;
+					y_last_position = y_position;
+					z_last_position = z_position;
+
+					// std::cout << x_position << " " << y_position << " " << z_position << std::endl;
+					// std::cout << x_velocity << " " << y_velocity << " " << z_velocity << std::endl;
 				}
 
 				position_timer = imuData.timestamp;
@@ -233,4 +216,71 @@ inline int run_rtimulib_example1()
 			}
 		}
 	}
+}
+
+bool MovementTelemetry::init()
+{
+	using namespace Logger;
+
+	logInfo(MODULE_NAME, "Loading RTIMULib.ini settings.");
+	m_imuSettings = std::make_unique<RTIMUSettings>("RTIMULib");
+
+	logInfo(MODULE_NAME, "Detecting the IMU type.");
+	m_imu = std::unique_ptr<RTIMU>(RTIMU::createIMU(m_imuSettings.get()));
+
+	if ((nullptr == m_imu) || (m_imu->IMUType() == RTIMU_TYPE_NULL)) {
+		logError(MODULE_NAME, "No IMU found!");
+		return false;
+	}
+
+	logInfo(MODULE_NAME, "Initializing the IMU.");
+	if (!m_imu->IMUInit()) {
+		logError(MODULE_NAME, "Failed to initialize the IMU!");
+		return false;
+	}
+
+	logInfo(MODULE_NAME, "Configuring the IMU.");
+	m_imu->setSlerpPower(0.02);
+
+	m_imu->setGyroEnable(true);
+	m_imu->setAccelEnable(true);
+	m_imu->setCompassEnable(true);
+
+	return true;
+};
+
+bool MovementTelemetry::teardown()
+{
+	return true;
+};
+
+void MovementTelemetry::startRecording()
+{
+	using namespace Logger;
+
+	logInfo(MODULE_NAME, "Starting the sensor processing thread.");
+	m_sensorProcessingThread = std::thread([this]() {
+		this->sensorProcessingTask();
+	});
+}
+
+void MovementTelemetry::stopRecording()
+{
+	using namespace Logger;
+
+	logInfo(MODULE_NAME, "Stopping the sensor processing thread.");
+
+	if (m_sensorProcessingThread.joinable()) {
+		m_sensorProcessingThread.join();
+	}
+}
+
+[[nodiscard]] double MovementTelemetry::getTotalMovement_m() const
+{
+	return m_totalMovement_m.load();
+}
+
+void MovementTelemetry::resetData()
+{
+	m_totalMovement_m.store(0.0);
 }
