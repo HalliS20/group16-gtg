@@ -22,6 +22,7 @@ target_link_libraries(gtg PRIVATE RTIMULib LEDMatrixDriverLib)
 target_compile_options(gtg PRIVATE
   -Wall -Wextra -Wpedantic
   -Wshadow -Wformat=2 -Wundef
+  -Wno-psabi
   -fstack-protector-strong
   -Og -g3 -fno-omit-frame-pointer
   -fno-sanitize-recover=all
