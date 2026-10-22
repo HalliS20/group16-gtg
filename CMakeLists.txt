@@ -23,3 +23,6 @@ target_compile_options(gtg PRIVATE
   -fno-exceptions
 )
 target_link_libraries(gtg PRIVATE atomic)
+
+add_executable(measure_rate tools/measure_rate.cpp)
+target_link_libraries(measure_rate PRIVATE RTIMULib atomic)
