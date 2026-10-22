@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <print>
@@ -63,6 +64,11 @@ int main(int argc, char** argv)
 	std::vector<uint64_t> timestamps;
 	timestamps.reserve(20000);
 
+	double magSum = 0.0;
+	double magMin = 1e9;
+	double magMax = 0.0;
+	std::size_t magCount = 0;
+
 	const auto start = std::chrono::steady_clock::now();
 	while (std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count() < runSeconds) {
 		usleep(pollMs * 1000);
@@ -72,7 +78,19 @@ int main(int argc, char** argv)
 				continue;
 			}
 			timestamps.push_back(imuData.timestamp);
+
+			const RTVector3& a = imuData.accel;
+			const double mag = std::sqrt((a.x() * a.x()) + (a.y() * a.y()) + (a.z() * a.z()));
+			magSum += mag;
+			magMin = std::min(magMin, mag);
+			magMax = std::max(magMax, mag);
+			++magCount;
 		}
+	}
+
+	if (magCount > 0) {
+		std::println("raw accel magnitude (should be ~1.0g at rest): mean={:.4f}  min={:.4f}  max={:.4f}",
+			magSum / static_cast<double>(magCount), magMin, magMax);
 	}
 
 	if (timestamps.size() < 2) {
