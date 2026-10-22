@@ -30,6 +30,7 @@ struct accel {
 
 	double x_vel = 0.0, y_vel = 0.0, z_vel = 0.0;
 	double x_pos = 0.0, y_pos = 0.0, z_pos = 0.0;
+	double total_movement = 0.0;
 	bool has_estimate = false;
 };
 
@@ -94,14 +95,18 @@ void addAccel(accel* accInstance, const RTVector3& linearAccel, uint64_t ts)
 	accInstance->accel_ts.add(ts);
 }
 
-void zeroVelocity(accel& accInstance)
+// Resets velocity and position on confirmed rest, so drift can't accumulate across movements.
+void zeroMotion(accel& accInstance)
 {
 	accInstance.x_vel = 0.0;
 	accInstance.y_vel = 0.0;
 	accInstance.z_vel = 0.0;
+	accInstance.x_pos = 0.0;
+	accInstance.y_pos = 0.0;
+	accInstance.z_pos = 0.0;
 }
 
-// Double-integrates the accel window's line fit directly into velocity and position.
+// Double-integrates the accel window's line fit directly into velocity and position, and adds the step's path length to total_movement.
 bool updateVelocityAndPosition(accel& accInstance)
 {
 	const std::vector<uint64_t> window_ts = accInstance.accel_ts.get(velocity_window_samples);
@@ -120,9 +125,13 @@ bool updateVelocityAndPosition(accel& accInstance)
 		return false;
 	}
 
-	accInstance.x_pos += integral::positionStep(x_line.slope * G, x_line.intercept * G, t1, dt, accInstance.x_vel);
-	accInstance.y_pos += integral::positionStep(y_line.slope * G, y_line.intercept * G, t1, dt, accInstance.y_vel);
-	accInstance.z_pos += integral::positionStep(z_line.slope * G, z_line.intercept * G, t1, dt, accInstance.z_vel);
+	const double dx = integral::positionStep(x_line.slope * G, x_line.intercept * G, t1, dt, accInstance.x_vel);
+	const double dy = integral::positionStep(y_line.slope * G, y_line.intercept * G, t1, dt, accInstance.y_vel);
+	const double dz = integral::positionStep(z_line.slope * G, z_line.intercept * G, t1, dt, accInstance.z_vel);
+	accInstance.x_pos += dx;
+	accInstance.y_pos += dy;
+	accInstance.z_pos += dz;
+	accInstance.total_movement += std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
 
 	accInstance.x_vel += integral::velocityStep(x_line.slope * G, x_line.intercept * G, t1, dt);
 	accInstance.y_vel += integral::velocityStep(y_line.slope * G, y_line.intercept * G, t1, dt);
@@ -164,7 +173,7 @@ inline int run_rtimulib_example1()
 			addAccel(&accInstance, linearAccel, imuData.timestamp);
 
 			if (isStationary(accInstance)) {
-				zeroVelocity(accInstance);
+				zeroMotion(accInstance);
 			}
 
 			updateVelocityAndPosition(accInstance);
@@ -180,6 +189,7 @@ inline int run_rtimulib_example1()
 				accInstance.z_vel);
 			std::println("Position  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", accInstance.x_pos, accInstance.y_pos,
 				accInstance.z_pos);
+			std::println("Total movement: {:8.4f}", accInstance.total_movement);
 			fflush(stdout);
 		}
 	}
