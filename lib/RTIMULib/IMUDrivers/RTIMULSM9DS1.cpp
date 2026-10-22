@@ -362,16 +362,19 @@ bool RTIMULSM9DS1::IMURead()
     if ((status & 0x3) == 0)
         return false;
 
-    for (int i = 0; i<6; i++){
-        if (!m_settings->HALRead(m_accelGyroSlaveAddr, LSM9DS1_OUT_X_L_G + i, 1, &gyroData[i], "Failed to read LSM9DS1 gyro data"))
-            return false;
+    //  The LSM9DS1 auto-increments its register pointer on multi-byte I2C
+    //  reads (IF_ADD_INC defaults to enabled), so all 6 bytes of each
+    //  sensor can come back in a single I2C transaction instead of 6
+    //  separate single-byte reads each. Cuts 18 single-byte transactions
+    //  per IMURead() down to 3 six-byte ones.
+    if (!m_settings->HALRead(m_accelGyroSlaveAddr, LSM9DS1_OUT_X_L_G, 6, gyroData, "Failed to read LSM9DS1 gyro data"))
+        return false;
 
-        if (!m_settings->HALRead(m_accelGyroSlaveAddr, LSM9DS1_OUT_X_L_XL + i, 1, &accelData[i], "Failed to read LSM9DS1 accel data"))
-            return false;
+    if (!m_settings->HALRead(m_accelGyroSlaveAddr, LSM9DS1_OUT_X_L_XL, 6, accelData, "Failed to read LSM9DS1 accel data"))
+        return false;
 
-        if (!m_settings->HALRead(m_magSlaveAddr, LSM9DS1_MAG_OUT_X_L + i, 1, &compassData[i], "Failed to read LSM9DS1 compass data"))
-            return false;
-    }
+    if (!m_settings->HALRead(m_magSlaveAddr, LSM9DS1_MAG_OUT_X_L, 6, compassData, "Failed to read LSM9DS1 compass data"))
+        return false;
 
 
     m_imuData.timestamp = RTMath::currentUSecsSinceEpoch();
