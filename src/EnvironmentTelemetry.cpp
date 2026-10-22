@@ -1,4 +1,6 @@
+#include <cstdio>
 #include <limits>
+#include <print>
 #include <unistd.h>
 
 #include "Logger.hpp"
@@ -11,6 +13,9 @@ namespace {
 
 // Temperature/humidity drift slowly; no need to poll anywhere near IMU rates.
 constexpr int poll_interval_ms = 1000;
+
+// Printed every Nth sample, i.e. roughly every print_sample_interval seconds.
+constexpr std::size_t print_sample_interval = 5;
 
 void updateMin(std::atomic<double>& target, double value)
 {
@@ -53,6 +58,7 @@ bool EnvironmentTelemetry::init()
 void EnvironmentTelemetry::sensorProcessingTask()
 {
 	RTIMU_DATA data;
+	std::size_t sample_count = 0;
 
 	while (m_running) {
 		usleep(poll_interval_ms * 1000);
@@ -71,6 +77,19 @@ void EnvironmentTelemetry::sensorProcessingTask()
 			updateMax(m_maxHumidity_percent, data.humidity);
 			m_hasEstimate = true;
 		}
+
+		++sample_count;
+
+		if (sample_count < print_sample_interval || !m_hasEstimate) {
+			continue;
+		}
+
+		sample_count = 0;
+		std::println("Temperature  now: {:6.2f}  range: {:6.2f} - {:6.2f}", data.temperature,
+			m_minTemperature_degC.load(), m_maxTemperature_degC.load());
+		std::println("Humidity     now: {:6.2f}  range: {:6.2f} - {:6.2f}", data.humidity,
+			m_minHumidity_percent.load(), m_maxHumidity_percent.load());
+		fflush(stdout);
 	}
 }
 
