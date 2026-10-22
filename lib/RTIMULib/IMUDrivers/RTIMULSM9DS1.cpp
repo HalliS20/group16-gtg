@@ -362,20 +362,16 @@ bool RTIMULSM9DS1::IMURead()
     if ((status & 0x3) == 0)
         return false;
 
-    //  Burst-read all 6 bytes of each sensor in one I2C transaction instead
-    //  of 6 single-byte ones. The accel/gyro die auto-increments its
-    //  register pointer by default (IF_ADD_INC, CTRL8 bit 2). The
-    //  magnetometer is a separate die; like its LSM9DS0 predecessor in this
-    //  same library, it needs the top address bit set to request
-    //  auto-increment on a multi-byte read.
-    if (!m_settings->HALRead(m_accelGyroSlaveAddr, LSM9DS1_OUT_X_L_G, 6, gyroData, "Failed to read LSM9DS1 gyro data"))
-        return false;
+    for (int i = 0; i<6; i++){
+        if (!m_settings->HALRead(m_accelGyroSlaveAddr, LSM9DS1_OUT_X_L_G + i, 1, &gyroData[i], "Failed to read LSM9DS1 gyro data"))
+            return false;
 
-    if (!m_settings->HALRead(m_accelGyroSlaveAddr, LSM9DS1_OUT_X_L_XL, 6, accelData, "Failed to read LSM9DS1 accel data"))
-        return false;
+        if (!m_settings->HALRead(m_accelGyroSlaveAddr, LSM9DS1_OUT_X_L_XL + i, 1, &accelData[i], "Failed to read LSM9DS1 accel data"))
+            return false;
 
-    if (!m_settings->HALRead(m_magSlaveAddr, 0x80 | LSM9DS1_MAG_OUT_X_L, 6, compassData, "Failed to read LSM9DS1 compass data"))
-        return false;
+        if (!m_settings->HALRead(m_magSlaveAddr, LSM9DS1_MAG_OUT_X_L + i, 1, &compassData[i], "Failed to read LSM9DS1 compass data"))
+            return false;
+    }
 
 
     m_imuData.timestamp = RTMath::currentUSecsSinceEpoch();
