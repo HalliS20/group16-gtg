@@ -107,44 +107,56 @@ void zeroMotion(accel& accInstance)
 	accInstance.z_pos = 0.0;
 }
 
-// Double-integrates the accel window's line fit directly into velocity and position, and adds the step's path length to total_movement.
-bool updateVelocityAndPosition(accel& accInstance)
+// A per-axis accel line fit plus the window timing it was fit over.
+struct AccelFit {
+	bool valid = false;
+	lr::LineFit x, y, z;
+	double t1 = 0.0, dt = 0.0;
+};
+
+// Fits a line to each axis's trailing accel window. Invalid if there isn't enough data yet.
+AccelFit fitAccelWindow(const accel& accInstance)
 {
+	AccelFit fit;
 	const std::vector<uint64_t> window_ts = accInstance.accel_ts.get(velocity_window_samples);
 	if (window_ts.size() < 2) {
-		return false;
+		return fit;
 	}
 
 	const double T = static_cast<double>(window_ts.back() - window_ts.front()) * 1e-6;
-	const double dt = static_cast<double>(window_ts.back() - window_ts[window_ts.size() - 2]) * 1e-6;
-	const double t1 = T - dt;
+	fit.dt = static_cast<double>(window_ts.back() - window_ts[window_ts.size() - 2]) * 1e-6;
+	fit.t1 = T - fit.dt;
 
-	const lr::LineFit x_line = lr::fitLine(accInstance.x_accel_buf.get(window_ts.size()), window_ts);
-	const lr::LineFit y_line = lr::fitLine(accInstance.y_accel_buf.get(window_ts.size()), window_ts);
-	const lr::LineFit z_line = lr::fitLine(accInstance.z_accel_buf.get(window_ts.size()), window_ts);
-	if (!x_line.valid || !y_line.valid || !z_line.valid) {
-		return false;
-	}
+	fit.x = lr::fitLine(accInstance.x_accel_buf.get(window_ts.size()), window_ts);
+	fit.y = lr::fitLine(accInstance.y_accel_buf.get(window_ts.size()), window_ts);
+	fit.z = lr::fitLine(accInstance.z_accel_buf.get(window_ts.size()), window_ts);
+	fit.valid = fit.x.valid && fit.y.valid && fit.z.valid;
+	return fit;
+}
 
-	// Velocity below the deadband doesn't count toward position; above it, used as-is.
+// Advances position and total_movement. Velocity below the deadband doesn't count toward position; above it, used as-is.
+void updatePosition(accel& accInstance, const AccelFit& fit)
+{
 	const double x_vel_for_pos = std::abs(accInstance.x_vel) < velocity_deadband ? 0.0 : accInstance.x_vel;
 	const double y_vel_for_pos = std::abs(accInstance.y_vel) < velocity_deadband ? 0.0 : accInstance.y_vel;
 	const double z_vel_for_pos = std::abs(accInstance.z_vel) < velocity_deadband ? 0.0 : accInstance.z_vel;
 
-	const double dx = integral::positionStep(x_line.slope * G, x_line.intercept * G, t1, dt, x_vel_for_pos);
-	const double dy = integral::positionStep(y_line.slope * G, y_line.intercept * G, t1, dt, y_vel_for_pos);
-	const double dz = integral::positionStep(z_line.slope * G, z_line.intercept * G, t1, dt, z_vel_for_pos);
+	const double dx = integral::positionStep(fit.x.slope * G, fit.x.intercept * G, fit.t1, fit.dt, x_vel_for_pos);
+	const double dy = integral::positionStep(fit.y.slope * G, fit.y.intercept * G, fit.t1, fit.dt, y_vel_for_pos);
+	const double dz = integral::positionStep(fit.z.slope * G, fit.z.intercept * G, fit.t1, fit.dt, z_vel_for_pos);
+
 	accInstance.x_pos += dx;
 	accInstance.y_pos += dy;
 	accInstance.z_pos += dz;
 	accInstance.total_movement += std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
+}
 
-	accInstance.x_vel += integral::velocityStep(x_line.slope * G, x_line.intercept * G, t1, dt);
-	accInstance.y_vel += integral::velocityStep(y_line.slope * G, y_line.intercept * G, t1, dt);
-	accInstance.z_vel += integral::velocityStep(z_line.slope * G, z_line.intercept * G, t1, dt);
-
-	accInstance.has_estimate = true;
-	return true;
+// Advances velocity. Call after updatePosition(), which needs the pre-update velocity as vPrev.
+void updateVelocity(accel& accInstance, const AccelFit& fit)
+{
+	accInstance.x_vel += integral::velocityStep(fit.x.slope * G, fit.x.intercept * G, fit.t1, fit.dt);
+	accInstance.y_vel += integral::velocityStep(fit.y.slope * G, fit.y.intercept * G, fit.t1, fit.dt);
+	accInstance.z_vel += integral::velocityStep(fit.z.slope * G, fit.z.intercept * G, fit.t1, fit.dt);
 }
 
 // RTPressure* pressure = RTPressure::createPressure(settings);
@@ -182,7 +194,12 @@ inline int run_rtimulib_example1()
 				zeroMotion(accInstance);
 			}
 
-			updateVelocityAndPosition(accInstance);
+			const AccelFit fit = fitAccelWindow(accInstance);
+			if (fit.valid) {
+				updatePosition(accInstance, fit);
+				updateVelocity(accInstance, fit);
+				accInstance.has_estimate = true;
+			}
 
 			++sample_count;
 
