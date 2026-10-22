@@ -1,14 +1,19 @@
 #pragma once
 
-#include <cstddef>
-
 namespace integral {
 
-inline double linearIntegral(double a, double b, double x1)
+// Double integral of a(t) = slope*t + intercept over [t1, t1+dt], given the velocity already accumulated up to t1.
+inline double positionStep(double slope, double intercept, double t1, double dt, double vPrev)
 {
-	double a_term = 0.5 * x1 * x1 * a;
-	double b_term = x1 * b;
-	return a_term + b_term;
+	return (vPrev * dt) + ((1.0 / 6.0) * slope * dt * dt * dt)
+		+ (0.5 * ((slope * t1) + intercept) * dt * dt);
+}
+
+// Integral of the same line over [t1, t1+dt].
+inline double velocityStep(double slope, double intercept, double t1, double dt)
+{
+	const double t2 = t1 + dt;
+	return (0.5 * slope * ((t2 * t2) - (t1 * t1))) + (intercept * dt);
 }
 
 } // namespace integral

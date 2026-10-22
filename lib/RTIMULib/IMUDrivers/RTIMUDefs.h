@@ -804,6 +804,8 @@
 #define LSM9DS1_CTRL6               0x20
 #define LSM9DS1_CTRL7               0x21
 #define LSM9DS1_CTRL8               0x22
+#define LSM9DS1_CTRL8_BDU           0x40
+#define LSM9DS1_CTRL8_IF_ADD_INC    0x04
 #define LSM9DS1_CTRL9               0x23
 #define LSM9DS1_CTRL10              0x24
 #define LSM9DS1_INT_GEN_SRC_XL      0x26
