@@ -12,7 +12,8 @@
 
 constexpr int buffer_length = 1000;
 constexpr double G = 9.80665;
-constexpr double accel_deadband = 0.2;
+constexpr double accel_deadband = 0.05;
+constexpr double velocity_deadband = 0.2; // m/s
 
 constexpr std::size_t velocity_window_samples = 13;
 
@@ -125,9 +126,14 @@ bool updateVelocityAndPosition(accel& accInstance)
 		return false;
 	}
 
-	const double dx = integral::positionStep(x_line.slope * G, x_line.intercept * G, t1, dt, accInstance.x_vel);
-	const double dy = integral::positionStep(y_line.slope * G, y_line.intercept * G, t1, dt, accInstance.y_vel);
-	const double dz = integral::positionStep(z_line.slope * G, z_line.intercept * G, t1, dt, accInstance.z_vel);
+	// Velocity below the deadband doesn't count toward position; above it, used as-is.
+	const double x_vel_for_pos = std::abs(accInstance.x_vel) < velocity_deadband ? 0.0 : accInstance.x_vel;
+	const double y_vel_for_pos = std::abs(accInstance.y_vel) < velocity_deadband ? 0.0 : accInstance.y_vel;
+	const double z_vel_for_pos = std::abs(accInstance.z_vel) < velocity_deadband ? 0.0 : accInstance.z_vel;
+
+	const double dx = integral::positionStep(x_line.slope * G, x_line.intercept * G, t1, dt, x_vel_for_pos);
+	const double dy = integral::positionStep(y_line.slope * G, y_line.intercept * G, t1, dt, y_vel_for_pos);
+	const double dz = integral::positionStep(z_line.slope * G, z_line.intercept * G, t1, dt, z_vel_for_pos);
 	accInstance.x_pos += dx;
 	accInstance.y_pos += dy;
 	accInstance.z_pos += dz;
