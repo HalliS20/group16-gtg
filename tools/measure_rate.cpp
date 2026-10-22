@@ -20,7 +20,16 @@
 
 namespace {
 
-RTIMU* initIMU()
+bool envFlag(const char* name, bool defaultValue)
+{
+	const char* v = std::getenv(name);
+	if (v == nullptr) {
+		return defaultValue;
+	}
+	return v[0] != '0';
+}
+
+RTIMU* initIMU(bool gyroEnable, bool compassEnable)
 {
 	RTIMUSettings* settings = new RTIMUSettings("RTIMULib");
 	RTIMU* imu = RTIMU::createIMU(settings);
@@ -31,9 +40,9 @@ RTIMU* initIMU()
 
 	imu->IMUInit();
 	imu->setSlerpPower(0.02);
-	imu->setGyroEnable(true);
+	imu->setGyroEnable(gyroEnable);
 	imu->setAccelEnable(true);
-	imu->setCompassEnable(true);
+	imu->setCompassEnable(compassEnable);
 	return imu;
 }
 
@@ -42,16 +51,21 @@ RTIMU* initIMU()
 int main(int argc, char** argv)
 {
 	const double runSeconds = argc > 1 ? std::atof(argv[1]) : 15.0;
+	const bool gyroEnable = envFlag("GTG_GYRO", true);
+	const bool compassEnable = envFlag("GTG_COMPASS", true);
+	const char* pollOverride = std::getenv("GTG_POLL_MS");
 
-	RTIMU* imu = initIMU();
-	std::println("configured poll interval: {} ms", imu->IMUGetPollInterval());
+	RTIMU* imu = initIMU(gyroEnable, compassEnable);
+	const int pollMs = pollOverride != nullptr ? std::atoi(pollOverride) : imu->IMUGetPollInterval();
+	std::println("configured poll interval: {} ms  (using: {} ms)  gyro={} compass={}", imu->IMUGetPollInterval(),
+		pollMs, gyroEnable, compassEnable);
 
 	std::vector<uint64_t> timestamps;
 	timestamps.reserve(20000);
 
 	const auto start = std::chrono::steady_clock::now();
 	while (std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count() < runSeconds) {
-		usleep(imu->IMUGetPollInterval() * 1000);
+		usleep(pollMs * 1000);
 		while (imu->IMURead()) {
 			const RTIMU_DATA& imuData = imu->getIMUData();
 			if (!imuData.accelValid) {
