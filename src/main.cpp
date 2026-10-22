@@ -1,6 +1,7 @@
 #include <chrono>
 #include <thread>
 
+#include "EnvironmentTelemetry.h"
 #include "Logger.hpp"
 #include "MovementTelemetry.h"
 #include "Timer.h"
@@ -37,8 +38,47 @@ int main()
 		}
 	});
 
+	EnvironmentTelemetry envTelemetry {};
+	if (!envTelemetry.init()) {
+		Logger::logError(MODULE_NAME, "Failed to initialize EnvironmentTelemetry module, exiting.");
+		return 1;
+	}
+
+	constexpr double temperatureRangeThreshold_degC = 4.0;
+	constexpr double outdoorHumidityMin_percent = 50.0;
+	constexpr double outdoorHumidityMax_percent = 90.0;
+
+	Timer outsideTimer(inactivityPeriod_s * 1000);
+
+	outsideTimer.setCallback([&]() {
+		outsideTimer.setInterval(recheckPeriod_s * 1000);
+
+		if (!envTelemetry.hasEstimate()) {
+			return;
+		}
+
+		const double temperatureRange_degC
+			= envTelemetry.getMaxTemperature_degC() - envTelemetry.getMinTemperature_degC();
+		const bool sawOutdoorHumidity
+			= envTelemetry.getMinHumidity_percent() <= outdoorHumidityMax_percent
+			&& envTelemetry.getMaxHumidity_percent() >= outdoorHumidityMin_percent;
+
+		if (temperatureRange_degC >= temperatureRangeThreshold_degC || sawOutdoorHumidity) {
+			envTelemetry.resetData();
+			outsideTimer.setInterval(inactivityPeriod_s * 1000);
+
+			Logger::logInfo(
+				MODULE_NAME, "Environment change detected, looks like you've been outside.");
+		} else {
+			Logger::logWarning(MODULE_NAME, "You might not have gone outside in a while.");
+		}
+	});
+
 	moveTelemetry.startRecording();
 	inactivityTimer.start();
+
+	envTelemetry.startRecording();
+	outsideTimer.start();
 
 	while (true) {
 		std::this_thread::sleep_for(std::chrono::seconds(5));
