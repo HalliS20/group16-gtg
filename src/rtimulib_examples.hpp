@@ -10,7 +10,7 @@
 #include "integral.hpp"
 #include "linear_regression.hpp"
 
-constexpr int buffer_length = 1000;
+constexpr int buffer_length = 25;
 constexpr double G = 9.80665;
 constexpr double accel_deadband = 0.05;
 constexpr double velocity_deadband = 0.02; // m/s
