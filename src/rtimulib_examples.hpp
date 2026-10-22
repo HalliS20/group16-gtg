@@ -12,7 +12,7 @@
 
 constexpr int buffer_length = 1000;
 constexpr double G = 9.80665;
-constexpr double accel_deadband = 0.05;
+constexpr double accel_deadband = 0.2;
 
 constexpr std::size_t velocity_window_samples = 13;
 
