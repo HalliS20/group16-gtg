@@ -9,7 +9,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build/bin)
 
 add_subdirectory(lib)
 
-add_executable(gtg src/main.cpp)
+add_executable(gtg
+	src/main.cpp
+	src/MovementTelemetry.cpp
+	src/Timer.cpp
+)
 target_include_directories(gtg PRIVATE src)
 
 target_link_libraries(gtg PRIVATE RTIMULib LEDMatrixDriverLib)

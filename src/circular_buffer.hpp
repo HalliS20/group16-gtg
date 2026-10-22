@@ -45,7 +45,7 @@ public:
 		return buf_[(head_ + buf_.size() - 1) % buf_.size()];
 	}
 
-	size_t size()
+	size_t size() const
 	{
 		return size_;
 	}

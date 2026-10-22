@@ -1,14 +1,20 @@
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <cstdio>
 #include <print>
 #include <unistd.h>
 #include <vector>
 
-#include "RTIMULib.h"
+#include "Logger.hpp"
 #include "circular_buffer.hpp"
 #include "integral.hpp"
 #include "linear_regression.hpp"
+
+#include "MovementTelemetry.h"
+
+static constexpr const char* MODULE_NAME = "MovementTelemetry";
+
+namespace {
 
 constexpr int buffer_length = 25;
 constexpr double G = 9.80665;
@@ -21,7 +27,8 @@ constexpr std::size_t print_sample_interval = 100;
 
 constexpr std::size_t stationary_sample_count = 25;
 
-constexpr int poll_interval_ms = 1; // tighter than IMUGetPollInterval()'s default, steadies the sample rate
+constexpr int poll_interval_ms
+	= 1; // tighter than IMUGetPollInterval()'s default, steadies the sample rate
 
 struct accel {
 	cb::CircularBuffer<double> x_accel_buf = cb::CircularBuffer<double>(buffer_length);
@@ -31,39 +38,14 @@ struct accel {
 
 	double x_vel = 0.0, y_vel = 0.0, z_vel = 0.0;
 	double x_pos = 0.0, y_pos = 0.0, z_pos = 0.0;
-	double total_movement = 0.0;
 	bool has_estimate = false;
 };
 
-RTIMU* initIMU()
-{
-	RTIMUSettings* settings = new RTIMUSettings("RTIMULib");
-	RTIMU* imu = RTIMU::createIMU(settings);
-	if ((imu == nullptr) || (imu->IMUType() == RTIMU_TYPE_NULL)) {
-		std::println("No IMU found");
-		exit(1);
-	}
-
-	imu->IMUInit();
-
-	imu->setSlerpPower(0.02);
-	imu->setGyroEnable(true);
-	imu->setAccelEnable(true);
-	imu->setCompassEnable(true);
-	return imu;
-}
-
 bool allZero(const std::vector<double>& v)
 {
-	if (v.size() != stationary_sample_count) {
-		return false;
-	}
-	for (double d : v) {
-		if (d != 0.0) {
-			return false;
-		}
-	}
-	return true;
+	return v.size() == stationary_sample_count && std::ranges::all_of(v, [](double d) {
+		return d == 0.0;
+	});
 }
 
 bool isStationary(const accel& accInstance)
@@ -134,21 +116,28 @@ AccelFit fitAccelWindow(const accel& accInstance)
 	return fit;
 }
 
-// Advances position and total_movement. Velocity below the deadband doesn't count toward position; above it, used as-is.
-void updatePosition(accel& accInstance, const AccelFit& fit)
+// Advances position and feeds the step distance into totalMovement. Velocity below the
+// deadband doesn't count toward position; above it, used as-is.
+void updatePosition(accel& accInstance, const AccelFit& fit, std::atomic<double>& totalMovement)
 {
-	const double x_vel_for_pos = std::abs(accInstance.x_vel) < velocity_deadband ? 0.0 : accInstance.x_vel;
-	const double y_vel_for_pos = std::abs(accInstance.y_vel) < velocity_deadband ? 0.0 : accInstance.y_vel;
-	const double z_vel_for_pos = std::abs(accInstance.z_vel) < velocity_deadband ? 0.0 : accInstance.z_vel;
+	const double x_vel_for_pos
+		= std::abs(accInstance.x_vel) < velocity_deadband ? 0.0 : accInstance.x_vel;
+	const double y_vel_for_pos
+		= std::abs(accInstance.y_vel) < velocity_deadband ? 0.0 : accInstance.y_vel;
+	const double z_vel_for_pos
+		= std::abs(accInstance.z_vel) < velocity_deadband ? 0.0 : accInstance.z_vel;
 
-	const double dx = integral::positionStep(fit.x.slope * G, fit.x.intercept * G, fit.t1, fit.dt, x_vel_for_pos);
-	const double dy = integral::positionStep(fit.y.slope * G, fit.y.intercept * G, fit.t1, fit.dt, y_vel_for_pos);
-	const double dz = integral::positionStep(fit.z.slope * G, fit.z.intercept * G, fit.t1, fit.dt, z_vel_for_pos);
+	const double dx = integral::positionStep(
+		fit.x.slope * G, fit.x.intercept * G, fit.t1, fit.dt, x_vel_for_pos);
+	const double dy = integral::positionStep(
+		fit.y.slope * G, fit.y.intercept * G, fit.t1, fit.dt, y_vel_for_pos);
+	const double dz = integral::positionStep(
+		fit.z.slope * G, fit.z.intercept * G, fit.t1, fit.dt, z_vel_for_pos);
 
 	accInstance.x_pos += dx;
 	accInstance.y_pos += dy;
 	accInstance.z_pos += dz;
-	accInstance.total_movement += std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
+	totalMovement.fetch_add(std::sqrt((dx * dx) + (dy * dy) + (dz * dz)));
 }
 
 // Advances velocity. Call after updatePosition(), which needs the pre-update velocity as vPrev.
@@ -159,35 +148,54 @@ void updateVelocity(accel& accInstance, const AccelFit& fit)
 	accInstance.z_vel += integral::velocityStep(fit.z.slope * G, fit.z.intercept * G, fit.t1, fit.dt);
 }
 
-// RTPressure* pressure = RTPressure::createPressure(settings);
-// RTHumidity* humidity = RTHumidity::createHumidity(settings);
-// 	if (pressure != NULL) {
-// 		pressure->pressureInit();
-// 	}
-//
-// 	if (humidity != NULL) {
-// 		humidity->humidityInit();
-// 	}
+} // namespace
 
-inline int run_rtimulib_example1()
+bool MovementTelemetry::init()
 {
-	RTIMU* imu = initIMU();
+	using namespace Logger;
 
+	logInfo(MODULE_NAME, "Loading RTIMULib.ini settings.");
+	m_imuSettings = std::make_unique<RTIMUSettings>("RTIMULib");
+
+	logInfo(MODULE_NAME, "Detecting the IMU type.");
+	m_imu = std::unique_ptr<RTIMU>(RTIMU::createIMU(m_imuSettings.get()));
+
+	if ((nullptr == m_imu) || (m_imu->IMUType() == RTIMU_TYPE_NULL)) {
+		logError(MODULE_NAME, "No IMU found!");
+		return false;
+	}
+
+	logInfo(MODULE_NAME, "Initializing the IMU.");
+	if (!m_imu->IMUInit()) {
+		logError(MODULE_NAME, "Failed to initialize the IMU!");
+		return false;
+	}
+
+	logInfo(MODULE_NAME, "Configuring the IMU.");
+	m_imu->setSlerpPower(0.02);
+
+	m_imu->setGyroEnable(true);
+	m_imu->setAccelEnable(true);
+	m_imu->setCompassEnable(true);
+
+	return true;
+}
+
+void MovementTelemetry::sensorProcessingTask()
+{
 	accel accInstance;
-
 	std::size_t sample_count = 0;
-	while (true) {
 
+	while (m_running) {
 		usleep(poll_interval_ms * 1000);
 
-		while (imu->IMURead()) {
-
-			const RTIMU_DATA& imuData = imu->getIMUData();
+		while (m_imu->IMURead()) {
+			const RTIMU_DATA& imuData = m_imu->getIMUData();
 
 			if (!imuData.accelValid) {
 				continue;
 			}
-			RTVector3 linearAccel = imu->getAccelResiduals();
+			const RTVector3 linearAccel = m_imu->getAccelResiduals();
 			addAccel(&accInstance, linearAccel, imuData.timestamp);
 
 			if (isStationary(accInstance)) {
@@ -196,7 +204,7 @@ inline int run_rtimulib_example1()
 
 			const AccelFit fit = fitAccelWindow(accInstance);
 			if (fit.valid) {
-				updatePosition(accInstance, fit);
+				updatePosition(accInstance, fit, m_totalMovement_m);
 				updateVelocity(accInstance, fit);
 				accInstance.has_estimate = true;
 			}
@@ -208,12 +216,45 @@ inline int run_rtimulib_example1()
 			}
 
 			sample_count = 0;
-			std::println("Velocity  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", accInstance.x_vel, accInstance.y_vel,
-				accInstance.z_vel);
-			std::println("Position  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", accInstance.x_pos, accInstance.y_pos,
-				accInstance.z_pos);
-			std::println("Total movement: {:8.4f}", accInstance.total_movement);
+			std::println("Velocity  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", accInstance.x_vel,
+				accInstance.y_vel, accInstance.z_vel);
+			std::println("Position  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", accInstance.x_pos,
+				accInstance.y_pos, accInstance.z_pos);
+			std::println("Total movement: {:8.4f}", m_totalMovement_m.load());
 			fflush(stdout);
 		}
 	}
+}
+
+void MovementTelemetry::startRecording()
+{
+	using namespace Logger;
+
+	logInfo(MODULE_NAME, "Starting the sensor processing thread.");
+	m_running = true;
+	m_sensorProcessingThread = std::thread([this]() {
+		this->sensorProcessingTask();
+	});
+}
+
+void MovementTelemetry::stopRecording()
+{
+	using namespace Logger;
+
+	logInfo(MODULE_NAME, "Stopping the sensor processing thread.");
+	m_running = false;
+
+	if (m_sensorProcessingThread.joinable()) {
+		m_sensorProcessingThread.join();
+	}
+}
+
+double MovementTelemetry::getTotalMovement_m() const
+{
+	return m_totalMovement_m.load();
+}
+
+void MovementTelemetry::resetData()
+{
+	m_totalMovement_m.store(0.0);
 }
