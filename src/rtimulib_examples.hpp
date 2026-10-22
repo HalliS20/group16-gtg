@@ -15,11 +15,12 @@ constexpr double G = 9.80665;
 constexpr double accel_deadband = 0.05;
 
 constexpr std::size_t velocity_window_samples = 10;
-constexpr std::size_t position_window_samples = 10;
 
 constexpr std::size_t print_sample_interval = 100;
 
 constexpr std::size_t stationary_sample_count = 25;
+
+constexpr int poll_interval_ms = 1; // tighter than IMUGetPollInterval()'s default, steadies the sample rate
 
 struct accel {
 	cb::CircularBuffer<double> x_accel_buf = cb::CircularBuffer<double>(buffer_length);
@@ -27,15 +28,9 @@ struct accel {
 	cb::CircularBuffer<double> z_accel_buf = cb::CircularBuffer<double>(buffer_length);
 	cb::CircularBuffer<uint64_t> accel_ts = cb::CircularBuffer<uint64_t>(buffer_length);
 
-	cb::CircularBuffer<double> x_vel_buf = cb::CircularBuffer<double>(buffer_length);
-	cb::CircularBuffer<double> y_vel_buf = cb::CircularBuffer<double>(buffer_length);
-	cb::CircularBuffer<double> z_vel_buf = cb::CircularBuffer<double>(buffer_length);
-	cb::CircularBuffer<uint64_t> vel_ts = cb::CircularBuffer<uint64_t>(buffer_length);
-
-	cb::CircularBuffer<double> x_pos_buf = cb::CircularBuffer<double>(buffer_length);
-	cb::CircularBuffer<double> y_pos_buf = cb::CircularBuffer<double>(buffer_length);
-	cb::CircularBuffer<double> z_pos_buf = cb::CircularBuffer<double>(buffer_length);
-	cb::CircularBuffer<uint64_t> pos_ts = cb::CircularBuffer<uint64_t>(buffer_length);
+	double x_vel = 0.0, y_vel = 0.0, z_vel = 0.0;
+	double x_pos = 0.0, y_pos = 0.0, z_pos = 0.0;
+	bool has_estimate = false;
 };
 
 RTIMU* initIMU()
@@ -99,15 +94,15 @@ void addAccel(accel* accInstance, const RTVector3& linearAccel, uint64_t ts)
 	accInstance->accel_ts.add(ts);
 }
 
-void zeroVelocity(accel& accInstance, uint64_t ts)
+void zeroVelocity(accel& accInstance)
 {
-	accInstance.x_vel_buf.add(0.0);
-	accInstance.y_vel_buf.add(0.0);
-	accInstance.z_vel_buf.add(0.0);
-	accInstance.vel_ts.add(ts);
+	accInstance.x_vel = 0.0;
+	accInstance.y_vel = 0.0;
+	accInstance.z_vel = 0.0;
 }
 
-bool updateVelocity(accel& accInstance)
+// Double-integrates the accel window's line fit directly into velocity and position.
+bool updateVelocityAndPosition(accel& accInstance)
 {
 	const std::vector<uint64_t> window_ts = accInstance.accel_ts.get(velocity_window_samples);
 	if (window_ts.size() < 2) {
@@ -116,6 +111,7 @@ bool updateVelocity(accel& accInstance)
 
 	const double T = static_cast<double>(window_ts.back() - window_ts.front()) * 1e-6;
 	const double dt = static_cast<double>(window_ts.back() - window_ts[window_ts.size() - 2]) * 1e-6;
+	const double t1 = T - dt;
 
 	const lr::LineFit x_line = lr::fitLine(accInstance.x_accel_buf.get(window_ts.size()), window_ts);
 	const lr::LineFit y_line = lr::fitLine(accInstance.y_accel_buf.get(window_ts.size()), window_ts);
@@ -124,42 +120,15 @@ bool updateVelocity(accel& accInstance)
 		return false;
 	}
 
-	const double x_prev = accInstance.x_vel_buf.size() > 0 ? accInstance.x_vel_buf.getLast() : 0.0;
-	const double y_prev = accInstance.y_vel_buf.size() > 0 ? accInstance.y_vel_buf.getLast() : 0.0;
-	const double z_prev = accInstance.z_vel_buf.size() > 0 ? accInstance.z_vel_buf.getLast() : 0.0;
+	accInstance.x_pos += integral::positionStep(x_line.slope * G, x_line.intercept * G, t1, dt, accInstance.x_vel);
+	accInstance.y_pos += integral::positionStep(y_line.slope * G, y_line.intercept * G, t1, dt, accInstance.y_vel);
+	accInstance.z_pos += integral::positionStep(z_line.slope * G, z_line.intercept * G, t1, dt, accInstance.z_vel);
 
-	accInstance.x_vel_buf.add(x_prev + (((x_line.slope * T) + x_line.intercept) * dt * G));
-	accInstance.y_vel_buf.add(y_prev + (((y_line.slope * T) + y_line.intercept) * dt * G));
-	accInstance.z_vel_buf.add(z_prev + (((z_line.slope * T) + z_line.intercept) * dt * G));
-	accInstance.vel_ts.add(window_ts.back());
-	return true;
-}
+	accInstance.x_vel += integral::velocityStep(x_line.slope * G, x_line.intercept * G, t1, dt);
+	accInstance.y_vel += integral::velocityStep(y_line.slope * G, y_line.intercept * G, t1, dt);
+	accInstance.z_vel += integral::velocityStep(z_line.slope * G, z_line.intercept * G, t1, dt);
 
-bool updatePosition(accel& accInstance)
-{
-	const std::vector<uint64_t> window_ts = accInstance.vel_ts.get(position_window_samples);
-	if (window_ts.size() < 2) {
-		return false;
-	}
-
-	const double T = static_cast<double>(window_ts.back() - window_ts.front()) * 1e-6;
-	const double dt = static_cast<double>(window_ts.back() - window_ts[window_ts.size() - 2]) * 1e-6;
-
-	const lr::LineFit x_line = lr::fitLine(accInstance.x_vel_buf.get(window_ts.size()), window_ts);
-	const lr::LineFit y_line = lr::fitLine(accInstance.y_vel_buf.get(window_ts.size()), window_ts);
-	const lr::LineFit z_line = lr::fitLine(accInstance.z_vel_buf.get(window_ts.size()), window_ts);
-	if (!x_line.valid || !y_line.valid || !z_line.valid) {
-		return false;
-	}
-
-	const double x_prev = accInstance.x_pos_buf.size() > 0 ? accInstance.x_pos_buf.getLast() : 0.0;
-	const double y_prev = accInstance.y_pos_buf.size() > 0 ? accInstance.y_pos_buf.getLast() : 0.0;
-	const double z_prev = accInstance.z_pos_buf.size() > 0 ? accInstance.z_pos_buf.getLast() : 0.0;
-
-	accInstance.x_pos_buf.add(x_prev + (((x_line.slope * T) + x_line.intercept) * dt));
-	accInstance.y_pos_buf.add(y_prev + (((y_line.slope * T) + y_line.intercept) * dt));
-	accInstance.z_pos_buf.add(z_prev + (((z_line.slope * T) + z_line.intercept) * dt));
-	accInstance.pos_ts.add(window_ts.back());
+	accInstance.has_estimate = true;
 	return true;
 }
 
@@ -182,7 +151,7 @@ inline int run_rtimulib_example1()
 	std::size_t sample_count = 0;
 	while (true) {
 
-		usleep(imu->IMUGetPollInterval() * 1000);
+		usleep(poll_interval_ms * 1000);
 
 		while (imu->IMURead()) {
 
@@ -195,32 +164,22 @@ inline int run_rtimulib_example1()
 			addAccel(&accInstance, linearAccel, imuData.timestamp);
 
 			if (isStationary(accInstance)) {
-				zeroVelocity(accInstance, imuData.timestamp);
+				zeroVelocity(accInstance);
 			}
 
-			if (updateVelocity(accInstance)) {
-				updatePosition(accInstance);
-			}
+			updateVelocityAndPosition(accInstance);
 
 			++sample_count;
 
-			if (sample_count < print_sample_interval || accInstance.x_vel_buf.size() == 0
-				|| accInstance.x_pos_buf.size() == 0) {
+			if (sample_count < print_sample_interval || !accInstance.has_estimate) {
 				continue;
 			}
 
 			sample_count = 0;
-			const double x_velocity = accInstance.x_vel_buf.getLast();
-			const double y_velocity = accInstance.y_vel_buf.getLast();
-			const double z_velocity = accInstance.z_vel_buf.getLast();
-			const double x_position = accInstance.x_pos_buf.getLast();
-			const double y_position = accInstance.y_pos_buf.getLast();
-			const double z_position = accInstance.z_pos_buf.getLast();
-
-			std::println(
-				"Velocity  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", x_velocity, y_velocity, z_velocity);
-			std::println(
-				"Position  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", x_position, y_position, z_position);
+			std::println("Velocity  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", accInstance.x_vel, accInstance.y_vel,
+				accInstance.z_vel);
+			std::println("Position  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", accInstance.x_pos, accInstance.y_pos,
+				accInstance.z_pos);
 			fflush(stdout);
 		}
 	}
