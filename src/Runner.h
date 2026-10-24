@@ -9,7 +9,8 @@
 #include "components/environment/EnvironmentRunner.h"
 #include "components/movement/MovementRunner.h"
 
-struct Runner {
+class Runner {
+public:
 	Runner(DisplayController& d, MovementRunner& m, EnvironmentRunner& e)
 		: display(d)
 		, moveRunner(m)
@@ -17,14 +18,22 @@ struct Runner {
 	{
 	}
 
+	void init();
+	void update();
+
+private:
+	void checkStationary(std::chrono::steady_clock::time_point now);
+	void checkInsideTooLong(std::chrono::steady_clock::time_point now);
+	void redraw();
+
 	DisplayController& display;
 	MovementRunner& moveRunner;
 	EnvironmentRunner& envRunner;
 
 	bool insideTooLong = false;
 	bool stationaryTooLong = false;
-	std::chrono::steady_clock::time_point nextStationaryCheck {};
-	std::chrono::steady_clock::time_point nextInsideCheck {};
+	std::chrono::steady_clock::time_point nextStationaryCheck;
+	std::chrono::steady_clock::time_point nextInsideCheck;
 
 	std::atomic<bool> moveRunning {true};
 	std::atomic<bool> envRunning {true};

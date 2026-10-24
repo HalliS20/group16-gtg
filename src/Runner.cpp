@@ -15,101 +15,101 @@ static constexpr double insideTempMin = 18.0;
 static constexpr double insideTempMax = 25.0;
 static constexpr double insideHumMax = 50.0;
 
-static void checkStationary(Runner& runner, std::chrono::steady_clock::time_point now)
+void Runner::checkStationary(std::chrono::steady_clock::time_point now)
 {
-	if (runner.moveRunner.getTotalMovement_m() >= movementThreshold_m) {
-		runner.moveRunner.resetData();
-		runner.stationaryTooLong = false;
-		runner.nextStationaryCheck = now + inactivityPeriod;
+	if (moveRunner.getTotalMovement_m() >= movementThreshold_m) {
+		moveRunner.resetData();
+		stationaryTooLong = false;
+		nextStationaryCheck = now + inactivityPeriod;
 
 		Logger::logInfo(MODULE_NAME, "Movement detected, accumulated value is ok.");
 	} else {
-		runner.stationaryTooLong = true;
-		runner.nextStationaryCheck = now + recheckPeriod;
+		stationaryTooLong = true;
+		nextStationaryCheck = now + recheckPeriod;
 
 		Logger::logWarning(MODULE_NAME, "Inactivity detected: accumulated movement too low.");
 	}
 }
 
-static void redraw(Runner& runner)
+void Runner::redraw()
 {
-	if (runner.insideTooLong && runner.stationaryTooLong) {
-		runner.display.setRed();
-	} else if (runner.insideTooLong) {
-		runner.display.setGreen();
-	} else if (runner.stationaryTooLong) {
-		runner.display.setBlue();
+	if (insideTooLong && stationaryTooLong) {
+		display.setRed();
+	} else if (insideTooLong) {
+		display.setGreen();
+	} else if (stationaryTooLong) {
+		display.setBlue();
 	} else {
-		runner.display.setWhite();
+		display.setWhite();
 	}
 }
 
-static void initRunner(Runner& runner)
+void Runner::init()
 {
-	runner.nextStationaryCheck = std::chrono::steady_clock::now() + inactivityPeriod;
-	runner.nextInsideCheck = std::chrono::steady_clock::now() + insideTooLongPeriod;
+	nextStationaryCheck = std::chrono::steady_clock::now() + inactivityPeriod;
+	nextInsideCheck = std::chrono::steady_clock::now() + insideTooLongPeriod;
 
-	runner.moveThread = std::thread([&]() {
-		runner.moveRunner.run(runner.moveRunning);
+	moveThread = std::thread([this]() {
+		moveRunner.run(moveRunning);
 	});
-	runner.envThread = std::thread([&]() {
-		runner.envRunner.run(runner.envRunning);
+	envThread = std::thread([this]() {
+		envRunner.run(envRunning);
 	});
 }
 
-static void checkInsideTooLong(Runner& runner, std::chrono::steady_clock::time_point now)
+void Runner::checkInsideTooLong(std::chrono::steady_clock::time_point now)
 {
-	if (now < runner.nextInsideCheck) {
+	if (now < nextInsideCheck) {
 		return;
 	}
 
-	const EnvironmentTelemetry::Reading reading = runner.envRunner.getEnvironment();
+	const EnvironmentTelemetry::Reading reading = envRunner.getEnvironment();
 	const bool insideTemp
 		= reading.temperature_degC >= insideTempMin && reading.temperature_degC <= insideTempMax;
 	const bool insideHum = reading.humidity_percent < insideHumMax;
 
 	if (!insideTemp || !insideHum) {
-		runner.insideTooLong = false;
-		runner.nextInsideCheck = now + insideTooLongPeriod;
+		insideTooLong = false;
+		nextInsideCheck = now + insideTooLongPeriod;
 
 		Logger::logInfo(MODULE_NAME, "Environment change detected, looks like you've been outside.");
 	} else {
-		runner.insideTooLong = true;
-		runner.nextInsideCheck = now + insideRecheckPeriod;
+		insideTooLong = true;
+		nextInsideCheck = now + insideRecheckPeriod;
 
 		Logger::logWarning(MODULE_NAME, "You might not have gone outside in a while.");
 	}
 }
 
-static void updateRunner(Runner& runner)
+void Runner::update()
 {
 	const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 
 	bool changed = false;
 
-	const bool wasInsideTooLong = runner.insideTooLong;
-	checkInsideTooLong(runner, now);
-	if (runner.insideTooLong != wasInsideTooLong) {
+	const bool wasInsideTooLong = insideTooLong;
+	checkInsideTooLong(now);
+	if (insideTooLong != wasInsideTooLong) {
 		changed = true;
 	}
 
-	if (now >= runner.nextStationaryCheck) {
-		checkStationary(runner, now);
+	if (now >= nextStationaryCheck) {
+		checkStationary(now);
 		changed = true;
 	}
 
 	if (changed) {
-		redraw(runner);
+		redraw();
 	}
 }
 
 void runLoop(DisplayController& display, MovementRunner& moveRunner, EnvironmentRunner& envRunner)
 {
 	Runner runner {display, moveRunner, envRunner};
-	initRunner(runner);
+	runner.init();
 
 	while (true) {
-		updateRunner(runner);
+		runner.update();
 		std::this_thread::sleep_for(loopPeriod);
 	}
 }
