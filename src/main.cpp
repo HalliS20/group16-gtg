@@ -1,10 +1,10 @@
 #include <chrono>
 #include <thread>
 
-#include "DisplayController.h"
-#include "EnvironmentTelemetry.h"
-#include "Logger.hpp"
-#include "MovementTelemetry.h"
+#include "components/DisplayController.h"
+#include "components/EnvironmentTelemetry.h"
+#include "components/MovementTelemetry.h"
+#include "utils/Logger.hpp"
 
 static constexpr const char* MODULE_NAME = "GTGApp";
 

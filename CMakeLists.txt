@@ -11,10 +11,12 @@ add_subdirectory(lib)
 
 add_executable(gtg
 	src/main.cpp
-	src/DisplayController.cpp
-	src/EnvironmentTelemetry.cpp
-	src/MovementTelemetry.cpp
-	src/Timer.cpp
+	src/components/DisplayController.cpp
+	src/components/EnvironmentTelemetry.cpp
+	src/components/MovementTelemetry.cpp
+	src/utils/Timer.cpp
+	src/math/integral.cpp
+	src/math/linear_regression.cpp
 )
 target_include_directories(gtg PRIVATE src)
 

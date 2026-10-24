@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MATH_CIRCULAR_BUFFER_H
+#define MATH_CIRCULAR_BUFFER_H
 
 #include <algorithm>
 #include <cstddef>
@@ -57,3 +58,5 @@ private:
 };
 
 } // namespace cb
+
+#endif

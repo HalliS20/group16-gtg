@@ -5,10 +5,10 @@
 #include <unistd.h>
 #include <vector>
 
-#include "Logger.hpp"
-#include "circular_buffer.hpp"
-#include "integral.hpp"
-#include "linear_regression.hpp"
+#include "math/circular_buffer.h"
+#include "math/integral.h"
+#include "math/linear_regression.h"
+#include "utils/Logger.hpp"
 
 #include "MovementTelemetry.h"
 

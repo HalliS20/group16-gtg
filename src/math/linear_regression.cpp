@@ -1,18 +1,8 @@
-#pragma once
-
-#include <cstddef>
-#include <cstdint>
-#include <vector>
+#include "linear_regression.h"
 
 namespace lr {
 
-struct LineFit {
-	double slope = 0.0;
-	double intercept = 0.0;
-	bool valid = false;
-};
-
-inline LineFit fitLine(const std::vector<double>& y, const std::vector<uint64_t>& ts)
+LineFit fitLine(const std::vector<double>& y, const std::vector<uint64_t>& ts)
 {
 	LineFit fit;
 	const std::size_t count = y.size();
