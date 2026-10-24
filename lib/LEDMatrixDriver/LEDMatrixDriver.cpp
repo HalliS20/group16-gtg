@@ -36,7 +36,9 @@ std::expected<int, std::string> openFBDevice(const fs::path& fbDevPath, size_t s
 	if (fbFd < 0) {
 		return std::unexpected("LEDMatrixDriver: Failed to open file descriptor of a fb device!\n");
 	}
-	if (0 != ftruncate(fbFd, size)) {
+	// Only regular files (e.g. the emulator's tmpfs-backed fb) need to be sized with ftruncate.
+	// A real /dev/fbN character device is already fixed-size and doesn't support it.
+	if (fs::is_regular_file(fbDevPath) && 0 != ftruncate(fbFd, size)) {
 		return std::unexpected(
 			"LEDMatrixDriver: Failed to truncate file descriptor to the requested length!\n");
 	}

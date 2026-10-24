@@ -11,6 +11,7 @@ add_subdirectory(lib)
 
 add_executable(gtg
 	src/main.cpp
+	src/DisplayController.cpp
 	src/EnvironmentTelemetry.cpp
 	src/MovementTelemetry.cpp
 	src/Timer.cpp
