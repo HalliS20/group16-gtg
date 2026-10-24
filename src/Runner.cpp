@@ -12,7 +12,7 @@ static constexpr auto loopPeriod = std::chrono::milliseconds(100);
 static constexpr std::chrono::seconds insideTooLongPeriod {20};
 static constexpr std::chrono::seconds insideRecheckPeriod {1};
 static constexpr double insideTempMin = 18.0;
-static constexpr double insideTempMax = 25.0;
+static constexpr double insideTempMax = 26.0;
 static constexpr double insideHumMax = 50.0;
 
 void Runner::checkStationary(std::chrono::steady_clock::time_point now)

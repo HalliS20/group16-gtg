@@ -5,6 +5,7 @@
 using Logger::logError;
 using Logger::logInfo;
 static constexpr const char* MODULE_NAME = "EnvironmentTelemetry";
+static constexpr double CPU_HEAT_COMPENSATION_DIVISOR = 1.5;
 
 bool EnvironmentTelemetry::init()
 {
@@ -40,5 +41,27 @@ EnvironmentTelemetry::Reading EnvironmentTelemetry::getReading()
 		}
 	}
 
-	return {.temperature_degC = m_lastTemperature_degC, .humidity_percent = m_lastHumidity_percent};
+	// Compensate for heat radiating from Pi CPU into the HAT sensor.
+	const double cpuTemp = getCpuTemperature_degC();
+	const double correctedTemp = m_lastTemperature_degC
+		- ((cpuTemp - m_lastTemperature_degC) / CPU_HEAT_COMPENSATION_DIVISOR);
+
+	return {.temperature_degC = correctedTemp, .humidity_percent = m_lastHumidity_percent};
+}
+
+double EnvironmentTelemetry::getCpuTemperature_degC()
+{
+	FILE* fp = std::fopen("/sys/class/thermal/thermal_zone0/temp", "r");
+	if (nullptr == fp) {
+		return 0.0;
+	}
+
+	long milliC = 0;
+	const int scanned = std::fscanf(fp, "%ld", &milliC);
+	std::fclose(fp);
+
+	if (1 != scanned) {
+		return 0.0;
+	}
+	return static_cast<double>(milliC) / 1000.0;
 }

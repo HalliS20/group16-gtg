@@ -4,6 +4,8 @@
 #include <memory>
 
 #include "RTIMULib.h"
+#include <cstdio>
+#include <string>
 
 class EnvironmentTelemetry {
 public:
@@ -18,6 +20,7 @@ public:
 	[[nodiscard]] Reading getReading();
 
 private:
+	static double getCpuTemperature_degC();
 	std::unique_ptr<RTHumidity> m_humiditySensor;
 	std::unique_ptr<RTIMUSettings> m_settings;
 
