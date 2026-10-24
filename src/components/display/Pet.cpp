@@ -30,12 +30,14 @@ void Pet::draw(LEDMatrixDriver& driver, bool needOutside, bool needMovement) con
 
 	drawBody(driver, sadLevel);
 	// cat ears
+	driver.setPixel(0, 0, COLOR_EAR);
 	driver.setPixel(1, 0, COLOR_EAR);
 	driver.setPixel(2, 0, COLOR_EAR);
-	driver.setPixel(5, 0, COLOR_EAR);
+	driver.setPixel(7, 0, COLOR_EAR);
 	driver.setPixel(6, 0, COLOR_EAR);
-	driver.setPixel(1, 1, COLOR_EAR);
-	driver.setPixel(6, 1, COLOR_EAR);
+	driver.setPixel(5, 0, COLOR_EAR);
+	driver.setPixel(0, 1, COLOR_EAR);
+	driver.setPixel(7, 1, COLOR_EAR);
 	drawFace(driver, sadLevel);
 	drawIndicators(driver, needOutside, needMovement);
 }
