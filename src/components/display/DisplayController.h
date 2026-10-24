@@ -10,7 +10,6 @@ class DisplayController {
 public:
 	bool init();
 
-	void setOff();
 	void setWhite();
 	void setGreen();
 	void setBlue();
