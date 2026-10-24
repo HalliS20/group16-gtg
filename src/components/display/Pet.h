@@ -3,22 +3,20 @@
 
 #include <LEDMatrixDriver.h>
 
-// 8x8 pixel companion with status indicators:
-// - happy face by default
-// - sad face when either indicator is active
-// - green bottom-left: go outside
-// - blue bottom-right: move around
+// smiley guy that goes sad when you don't go outside
 class Pet {
 public:
 	static constexpr unsigned int width = 8;
 	static constexpr unsigned int height = 8;
 
-	void draw(LEDMatrixDriver& driver, bool needOutside, bool needMovement) const;
+	enum class SadLevel : unsigned int { Happy = 0, Sad = 1, VerySad = 2 };
+
+	static void draw(LEDMatrixDriver& driver, bool need_outside, bool need_movement);
 
 private:
-	void drawBody(LEDMatrixDriver& driver, unsigned int sadLevel) const;
-	void drawFace(LEDMatrixDriver& driver, unsigned int sadLevel) const;
-	void drawIndicators(LEDMatrixDriver& driver, bool needOutside, bool needMovement) const;
+	static void drawBody(LEDMatrixDriver& driver);
+	static void drawFace(LEDMatrixDriver& driver, SadLevel level);
+	static void drawIndicators(LEDMatrixDriver& driver, bool need_outside, bool need_movement);
 };
 
 #endif

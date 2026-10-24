@@ -41,13 +41,13 @@ MovementTelemetry::Reading MovementTelemetry::getReading()
 	double step_distance_m = 0.0;
 
 	while (m_imu->IMURead()) {
-		const RTIMU_DATA& imuData = m_imu->getIMUData();
-		if (!imuData.accelValid) {
+		const RTIMU_DATA& imu_data = m_imu->getIMUData();
+		if (!imu_data.accelValid) {
 			continue;
 		}
 
-		const RTVector3 linearAccel = m_imu->getAccelResiduals();
-		addSample(m_accel, linearAccel.x(), linearAccel.y(), linearAccel.z(), imuData.timestamp);
+		const RTVector3 linear_accel = m_imu->getAccelResiduals();
+		addSample(m_accel, linear_accel.x(), linear_accel.y(), linear_accel.z(), imu_data.timestamp);
 		step_distance_m += m_accel.last_step_distance_m;
 	}
 

@@ -12,4 +12,5 @@ Checks: >
   -readability-identifier-length,
   -readability-magic-numbers,
   -bugprone-easily-swappable-parameters,
-  -misc-use-anonymous-namespace
+  -misc-use-anonymous-namespace,
+  -modernize-use-nodiscard

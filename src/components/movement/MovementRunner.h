@@ -14,7 +14,7 @@ public:
 	void resetData();
 
 	// Total path length traveled (in meters) since the last resetData() call.
-	[[nodiscard]] double getTotalMovement_m() const;
+	double getTotalMovement_m() const;
 
 private:
 	MovementTelemetry& m_telemetry;

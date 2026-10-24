@@ -4,8 +4,6 @@
 #include <memory>
 
 #include "RTIMULib.h"
-#include <cstdio>
-#include <string>
 
 class EnvironmentTelemetry {
 public:
@@ -17,7 +15,7 @@ public:
 	bool init();
 
 	// Falls back to the last valid value per field if the sensor had nothing new.
-	[[nodiscard]] Reading getReading();
+	Reading getReading();
 
 private:
 	static double getCpuTemp();

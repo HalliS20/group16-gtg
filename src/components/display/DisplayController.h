@@ -1,30 +1,19 @@
 #ifndef DISPLAY_CONTROLLER_H
 #define DISPLAY_CONTROLLER_H
 
-#include <optional>
-
 #include <LEDMatrixDriver.h>
-
-#include "Pet.h"
 
 // Owns all sense-hat specific wiring (framebuffer device, asset paths).
 class DisplayController {
 public:
-	bool init();
+	DisplayController();
 
-	void setWhite();
-	void setGreen();
-	void setBlue();
-	void setRed();
-
-	// Draw the pet with status indicators.
-	void showPet(bool needOutside, bool needMovement);
+	void showPet(bool need_outside, bool need_movement);
 
 private:
-	std::optional<LEDMatrixDriver> m_driver;
-	Pet m_pet;
+	static LEDMatrixDriver createDriver();
 
-	void setColor(const LEDMatrixDriver::LEDMatrixRGBColor& color);
+	LEDMatrixDriver m_driver = createDriver();
 };
 
 #endif

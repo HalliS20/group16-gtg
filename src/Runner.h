@@ -9,12 +9,14 @@
 #include "components/environment/EnvironmentRunner.h"
 #include "components/movement/MovementRunner.h"
 
+using std::chrono::steady_clock;
+
 class Runner {
 public:
 	Runner(DisplayController& d, MovementRunner& m, EnvironmentRunner& e)
 		: display(d)
-		, moveRunner(m)
-		, envRunner(e)
+		, move_runner(m)
+		, env_runner(e)
 	{
 	}
 
@@ -22,29 +24,29 @@ public:
 	void update();
 
 private:
-	void checkStationary(std::chrono::steady_clock::time_point now);
-	void checkInsideTooLong(std::chrono::steady_clock::time_point now);
+	void checkStationary(steady_clock::time_point now);
+	void checkInsideTooLong(steady_clock::time_point now);
 	void redraw();
 
 	DisplayController& display;
-	MovementRunner& moveRunner;
-	EnvironmentRunner& envRunner;
+	MovementRunner& move_runner;
+	EnvironmentRunner& env_runner;
 
-	bool insideTooLong = false;
-	bool stationaryTooLong = false;
-	std::chrono::seconds outsideStreak {0};
-	std::chrono::steady_clock::time_point nextStationaryCheck;
-	std::chrono::steady_clock::time_point nextInsideCheck;
+	bool inside_too_long = false;
+	bool stationary_too_long = false;
+	std::chrono::seconds outside_streak {0};
+	steady_clock::time_point next_stationary_check;
+	steady_clock::time_point next_inside_check;
 
-	std::atomic<bool> moveRunning {true};
-	std::atomic<bool> envRunning {true};
+	std::atomic<bool> move_running {true};
+	std::atomic<bool> env_running {true};
 
-	std::thread moveThread;
-	std::thread envThread;
+	std::thread move_thread;
+	std::thread env_thread;
 };
 
 // Deploys the movement/environment runners on their own threads, then polls their state and
 // drives the display from the main thread. Never returns.
-void runLoop(DisplayController& display, MovementRunner& moveRunner, EnvironmentRunner& envRunner);
+void runLoop(DisplayController& display, MovementRunner& move_runner, EnvironmentRunner& env_runner);
 
 #endif

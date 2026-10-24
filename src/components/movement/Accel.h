@@ -3,17 +3,16 @@
 
 #include <cstdint>
 
-#include "math/circular_buffer.h"
+#include "utils/CircularBuffer.h"
 
-// 3-axis accelerometer dead-reckoning state. Plain data; MovementTelemetry owns and drives it
-// via addSample() below.
+// Used for getting a position change from integration on acceleration
 struct Accel {
 	static constexpr int buffer_length = 25;
 
-	cb::CircularBuffer<double> x_accel_buf {buffer_length};
-	cb::CircularBuffer<double> y_accel_buf {buffer_length};
-	cb::CircularBuffer<double> z_accel_buf {buffer_length};
-	cb::CircularBuffer<uint64_t> accel_ts {buffer_length};
+	CircularBuffer<double> x_accel_buf {buffer_length};
+	CircularBuffer<double> y_accel_buf {buffer_length};
+	CircularBuffer<double> z_accel_buf {buffer_length};
+	CircularBuffer<uint64_t> accel_ts {buffer_length};
 
 	double x_vel = 0.0;
 	double y_vel = 0.0;
@@ -21,13 +20,11 @@ struct Accel {
 	double x_pos = 0.0;
 	double y_pos = 0.0;
 	double z_pos = 0.0;
-	double last_step_distance_m = 0.0;
+	double last_step_distance_m = 0.0; // 0.0 until enough samples exist for a motion fit
 	bool has_estimate = false;
 };
 
-// Feeds in one raw accel sample (m/s^2, gravity removed) and updates position/velocity.
-// Sets accel.last_step_distance_m to the distance moved this call, or 0.0 if there wasn't
-// enough data yet.
+// Feeds in one raw accel sample ; x/y/z are axes, not positions.
 void addSample(Accel& accel, double x, double y, double z, uint64_t ts);
 
 #endif

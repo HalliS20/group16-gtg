@@ -10,26 +10,22 @@ static constexpr const char* MODULE_NAME = "GTGApp";
 
 int main()
 {
-	DisplayController display {};
-	if (!display.init()) {
-		Logger::logWarning(MODULE_NAME,
-			"Failed to initialize DisplayController module, continuing without display.");
-	}
+	DisplayController display;
 
-	MovementTelemetry moveTelemetry {};
-	if (!moveTelemetry.init()) {
+	MovementTelemetry move_telemetry {};
+	if (!move_telemetry.init()) {
 		Logger::logError(MODULE_NAME, "Failed to initialize MovementTelemetry module, exiting.");
 		return 1;
 	}
 
-	EnvironmentTelemetry envTelemetry {};
-	if (!envTelemetry.init()) {
+	EnvironmentTelemetry env_telemetry {};
+	if (!env_telemetry.init()) {
 		Logger::logError(MODULE_NAME, "Failed to initialize EnvironmentTelemetry module, exiting.");
 		return 1;
 	}
 
-	MovementRunner moveRunner(moveTelemetry);
-	EnvironmentRunner envRunner(envTelemetry);
+	MovementRunner move_runner(move_telemetry);
+	EnvironmentRunner env_runner(env_telemetry);
 
-	runLoop(display, moveRunner, envRunner);
+	runLoop(display, move_runner, env_runner);
 }

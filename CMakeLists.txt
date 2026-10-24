@@ -19,8 +19,8 @@ add_executable(gtg
 	src/components/movement/Accel.cpp
 	src/components/movement/MovementRunner.cpp
 	src/components/movement/MovementTelemetry.cpp
-	src/math/integral.cpp
-	src/math/linear_regression.cpp
+	src/utils/Integral.cpp
+	src/utils/LinearRegression.cpp
 )
 target_include_directories(gtg PRIVATE src)
 

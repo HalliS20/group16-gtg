@@ -13,7 +13,7 @@ public:
 	void run(std::atomic<bool>& running);
 
 	// Latest sensor values, refreshed by run(). Safe to call from another thread.
-	[[nodiscard]] EnvironmentTelemetry::Reading getEnvironment() const;
+	EnvironmentTelemetry::Reading getEnvironment() const;
 
 private:
 	EnvironmentTelemetry& m_telemetry;

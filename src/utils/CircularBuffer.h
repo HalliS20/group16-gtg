@@ -1,11 +1,9 @@
-#ifndef MATH_CIRCULAR_BUFFER_H
-#define MATH_CIRCULAR_BUFFER_H
+#ifndef CIRCULAR_BUFFER_H
+#define CIRCULAR_BUFFER_H
 
 #include <algorithm>
 #include <cstddef>
 #include <vector>
-
-namespace cb {
 
 template <typename T = double> class CircularBuffer {
 public:
@@ -56,7 +54,5 @@ private:
 	std::size_t head_ = 0;
 	std::size_t size_ = 0;
 };
-
-} // namespace cb
 
 #endif

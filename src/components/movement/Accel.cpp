@@ -4,8 +4,8 @@
 #include <cmath>
 #include <vector>
 
-#include "math/integral.h"
-#include "math/linear_regression.h"
+#include "utils/Integral.h"
+#include "utils/LinearRegression.h"
 
 static constexpr double G = 9.80665;
 static constexpr double accel_deadband = 0.05;
@@ -15,7 +15,7 @@ static constexpr std::size_t stationary_sample_count = 25;
 
 struct Fit {
 	bool valid = false;
-	lr::LineFit x, y, z;
+	LineFit x, y, z;
 	double t1 = 0.0, dt = 0.0;
 };
 
@@ -80,27 +80,26 @@ static Fit fitAccelWindow(const Accel& accel)
 	fit.dt = static_cast<double>(window_ts.back() - window_ts[window_ts.size() - 2]) * 1e-6;
 	fit.t1 = T - fit.dt;
 
-	fit.x = lr::fitLine(accel.x_accel_buf.get(window_ts.size()), window_ts);
-	fit.y = lr::fitLine(accel.y_accel_buf.get(window_ts.size()), window_ts);
-	fit.z = lr::fitLine(accel.z_accel_buf.get(window_ts.size()), window_ts);
+	fit.x = fitLine(accel.x_accel_buf.get(window_ts.size()), window_ts);
+	fit.y = fitLine(accel.y_accel_buf.get(window_ts.size()), window_ts);
+	fit.z = fitLine(accel.z_accel_buf.get(window_ts.size()), window_ts);
 	fit.valid = fit.x.valid && fit.y.valid && fit.z.valid;
 	return fit;
 }
 
-// Advances position. Velocity below the deadband doesn't count toward position; above it,
-// used as-is. Returns the step distance moved (m).
+// Advances position. Velocity below the deadband doesn't count, returns total distance moved.
 static double updatePosition(Accel& accel, const Fit& fit)
 {
 	const double x_vel_for_pos = std::abs(accel.x_vel) < velocity_deadband ? 0.0 : accel.x_vel;
 	const double y_vel_for_pos = std::abs(accel.y_vel) < velocity_deadband ? 0.0 : accel.y_vel;
 	const double z_vel_for_pos = std::abs(accel.z_vel) < velocity_deadband ? 0.0 : accel.z_vel;
 
-	const double dx = integral::positionStep(
-		fit.x.slope * G, fit.x.intercept * G, fit.t1, fit.dt, x_vel_for_pos);
-	const double dy = integral::positionStep(
-		fit.y.slope * G, fit.y.intercept * G, fit.t1, fit.dt, y_vel_for_pos);
-	const double dz = integral::positionStep(
-		fit.z.slope * G, fit.z.intercept * G, fit.t1, fit.dt, z_vel_for_pos);
+	const double dx
+		= positionStep(fit.x.slope * G, fit.x.intercept * G, fit.t1, fit.dt, x_vel_for_pos);
+	const double dy
+		= positionStep(fit.y.slope * G, fit.y.intercept * G, fit.t1, fit.dt, y_vel_for_pos);
+	const double dz
+		= positionStep(fit.z.slope * G, fit.z.intercept * G, fit.t1, fit.dt, z_vel_for_pos);
 
 	accel.x_pos += dx;
 	accel.y_pos += dy;
@@ -108,12 +107,12 @@ static double updatePosition(Accel& accel, const Fit& fit)
 	return std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
 }
 
-// Advances velocity. Call after updatePosition(), which needs the pre-update velocity as vPrev.
+// Advances velocity. Call after updatePosition().
 static void updateVelocity(Accel& accel, const Fit& fit)
 {
-	accel.x_vel += integral::velocityStep(fit.x.slope * G, fit.x.intercept * G, fit.t1, fit.dt);
-	accel.y_vel += integral::velocityStep(fit.y.slope * G, fit.y.intercept * G, fit.t1, fit.dt);
-	accel.z_vel += integral::velocityStep(fit.z.slope * G, fit.z.intercept * G, fit.t1, fit.dt);
+	accel.x_vel += velocityStep(fit.x.slope * G, fit.x.intercept * G, fit.t1, fit.dt);
+	accel.y_vel += velocityStep(fit.y.slope * G, fit.y.intercept * G, fit.t1, fit.dt);
+	accel.z_vel += velocityStep(fit.z.slope * G, fit.z.intercept * G, fit.t1, fit.dt);
 }
 
 void addSample(Accel& accel, double x, double y, double z, uint64_t ts)

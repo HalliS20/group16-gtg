@@ -1,6 +1,4 @@
-#include "linear_regression.h"
-
-namespace lr {
+#include "LinearRegression.h"
 
 LineFit fitLine(const std::vector<double>& y, const std::vector<uint64_t>& ts)
 {
@@ -11,27 +9,25 @@ LineFit fitLine(const std::vector<double>& y, const std::vector<uint64_t>& ts)
 	}
 
 	const double n = static_cast<double>(count);
-	double sumX = 0.0;
-	double sumY = 0.0;
-	double sumXY = 0.0;
-	double sumXX = 0.0;
+	double sum_x = 0.0;
+	double sum_y = 0.0;
+	double sum_xy = 0.0;
+	double sum_xx = 0.0;
 	for (std::size_t i = 0; i < count; ++i) {
 		const double x = static_cast<double>(ts[i] - ts[0]) * 1e-6;
-		sumX += x;
-		sumY += y[i];
-		sumXY += x * y[i];
-		sumXX += x * x;
+		sum_x += x;
+		sum_y += y[i];
+		sum_xy += x * y[i];
+		sum_xx += x * x;
 	}
 
-	const double denom = (n * sumXX) - (sumX * sumX);
+	const double denom = (n * sum_xx) - (sum_x * sum_x);
 	if (denom == 0.0) {
 		return fit;
 	}
 
-	fit.slope = ((n * sumXY) - (sumX * sumY)) / denom;
-	fit.intercept = (sumY - (fit.slope * sumX)) / n;
+	fit.slope = ((n * sum_xy) - (sum_x * sum_y)) / denom;
+	fit.intercept = (sum_y - (fit.slope * sum_x)) / n;
 	fit.valid = true;
 	return fit;
 }
-
-} // namespace lr

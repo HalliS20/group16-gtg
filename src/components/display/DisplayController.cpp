@@ -1,12 +1,6 @@
 #include "DisplayController.h"
 
-#include <utility>
-
-static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_GREEN {.red = 0, .green = 255, .blue = 0};
-static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_WHITE {
-	.red = 255, .green = 255, .blue = 255};
-static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_BLUE {.red = 0, .green = 0, .blue = 255};
-static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_RED {.red = 255, .green = 0, .blue = 0};
+#include "Pet.h"
 
 // for the emulator, use "/dev/shm/rpi-sense-emu-screen" with size 160 instead.
 // check /sys/class/graphics/fb*/name to find the correct fb on real hardware.
@@ -18,53 +12,19 @@ static constexpr size_t FB_HEIGHT_PX = 8LU;
 static constexpr const char* TEXT_FILE_ASSET_PATH = "assets/sense_hat_text.txt";
 static constexpr const char* IMAGE_FILE_ASSET_PATH = "assets/sense_hat_text.png";
 
-void DisplayController::setColor(const LEDMatrixDriver::LEDMatrixRGBColor& color)
+LEDMatrixDriver DisplayController::createDriver()
 {
-	if (!m_driver.has_value()) {
-		return;
-	}
-	m_driver->clear(color);
+	return LEDMatrixDriver::create(FB_NAME, FB_SIZE, FB_BYTES_PER_PX, FB_WIDTH_PX, FB_HEIGHT_PX,
+		TEXT_FILE_ASSET_PATH, IMAGE_FILE_ASSET_PATH)
+		.value();
 }
 
-void DisplayController::setRed()
+void DisplayController::showPet(bool need_outside, bool need_movement)
 {
-	setColor(COLOR_RED);
+	Pet::draw(m_driver, need_outside, need_movement);
 }
 
-void DisplayController::setGreen()
+DisplayController::DisplayController()
 {
-	setColor(COLOR_GREEN);
-}
-
-void DisplayController::setBlue()
-{
-	setColor(COLOR_BLUE);
-}
-
-void DisplayController::setWhite()
-{
-	setColor(COLOR_WHITE);
-}
-
-void DisplayController::showPet(bool needOutside, bool needMovement)
-{
-	if (!m_driver.has_value()) {
-		return;
-	}
-
-	m_pet.draw(*m_driver, needOutside, needMovement);
-}
-
-bool DisplayController::init()
-{
-	std::expected<LEDMatrixDriver, std::string> driverResult
-		= LEDMatrixDriver::create(FB_NAME, FB_SIZE, FB_BYTES_PER_PX, FB_WIDTH_PX, FB_HEIGHT_PX,
-			TEXT_FILE_ASSET_PATH, IMAGE_FILE_ASSET_PATH);
-	if (!driverResult.has_value()) {
-		return false;
-	}
-
-	m_driver.emplace(std::move(driverResult.value()));
 	showPet(false, false);
-	return true;
 }
