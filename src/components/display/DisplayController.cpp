@@ -65,6 +65,6 @@ bool DisplayController::init()
 	}
 
 	m_driver.emplace(std::move(driverResult.value()));
-	setWhite();
+	showPet(false, false);
 	return true;
 }
