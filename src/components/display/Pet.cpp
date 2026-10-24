@@ -77,8 +77,12 @@ void Pet::drawIndicators(LEDMatrixDriver& driver, bool needOutside, bool needMov
 {
 	if (needOutside) {
 		driver.setPixel(0, Pet::height - 1, COLOR_GREEN); // bottom-left
+		driver.setPixel(1, Pet::height - 1, COLOR_GREEN);
+		driver.setPixel(0, Pet::height - 2, COLOR_GREEN);
 	}
 	if (needMovement) {
 		driver.setPixel(Pet::width - 1, Pet::height - 1, COLOR_BLUE); // bottom-right
+		driver.setPixel(Pet::width - 2, Pet::height - 1, COLOR_BLUE);
+		driver.setPixel(Pet::width - 1, Pet::height - 2, COLOR_BLUE);
 	}
 }
