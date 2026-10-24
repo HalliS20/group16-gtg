@@ -5,7 +5,6 @@
 
 #include <LEDMatrixDriver.h>
 
-// Thin wrapper around the LED matrix driver exposing named status colors.
 // Owns all sense-hat specific wiring (framebuffer device, asset paths).
 class DisplayController {
 public:
