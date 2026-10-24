@@ -20,7 +20,7 @@ public:
 	[[nodiscard]] Reading getReading();
 
 private:
-	static double getCpuTemperature_degC();
+	static double getCpuTemp();
 	std::unique_ptr<RTHumidity> m_humiditySensor;
 	std::unique_ptr<RTIMUSettings> m_settings;
 

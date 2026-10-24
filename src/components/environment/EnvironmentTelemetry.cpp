@@ -42,14 +42,14 @@ EnvironmentTelemetry::Reading EnvironmentTelemetry::getReading()
 	}
 
 	// Compensate for heat radiating from Pi CPU into the HAT sensor.
-	const double cpuTemp = getCpuTemperature_degC();
+	const double cpuTemp = getCpuTemp();
 	const double correctedTemp = m_lastTemperature_degC
 		- ((cpuTemp - m_lastTemperature_degC) / CPU_HEAT_COMPENSATION_DIVISOR);
 
 	return {.temperature_degC = correctedTemp, .humidity_percent = m_lastHumidity_percent};
 }
 
-double EnvironmentTelemetry::getCpuTemperature_degC()
+double EnvironmentTelemetry::getCpuTemp()
 {
 	FILE* fp = std::fopen("/sys/class/thermal/thermal_zone0/temp", "r");
 	if (nullptr == fp) {
