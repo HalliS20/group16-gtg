@@ -23,8 +23,8 @@ constexpr const char* IMAGE_FILE_ASSET_PATH = "assets/sense_hat_text.png";
 
 bool DisplayController::init()
 {
-	auto driverResult = LEDMatrixDriver::create(
-		FB_NAME, FB_SIZE, FB_BYTES_PER_PX, FB_WIDTH_PX, FB_HEIGHT_PX, TEXT_FILE_ASSET_PATH, IMAGE_FILE_ASSET_PATH);
+	auto driverResult = LEDMatrixDriver::create(FB_NAME, FB_SIZE, FB_BYTES_PER_PX, FB_WIDTH_PX,
+		FB_HEIGHT_PX, TEXT_FILE_ASSET_PATH, IMAGE_FILE_ASSET_PATH);
 	if (!driverResult.has_value()) {
 		return false;
 	}

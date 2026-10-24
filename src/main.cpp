@@ -61,8 +61,7 @@ void checkInside(EnvironmentTelemetry& envTelemetry, DisplayController& display,
 
 	const double temperatureRange_degC
 		= envTelemetry.getMaxTemperature_degC() - envTelemetry.getMinTemperature_degC();
-	const bool sawOutdoorHumidity
-		= envTelemetry.getMinHumidity_percent() <= outdoorHumidityMax_percent
+	const bool sawOutdoorHumidity = envTelemetry.getMinHumidity_percent() <= outdoorHumidityMax_percent
 		&& envTelemetry.getMaxHumidity_percent() >= outdoorHumidityMin_percent;
 
 	if (temperatureRange_degC >= temperatureRangeThreshold_degC || sawOutdoorHumidity) {
@@ -70,8 +69,7 @@ void checkInside(EnvironmentTelemetry& envTelemetry, DisplayController& display,
 		insideTooLong = false;
 		nextCheck = now + insideTooLongPeriod;
 
-		Logger::logInfo(
-			MODULE_NAME, "Environment change detected, looks like you've been outside.");
+		Logger::logInfo(MODULE_NAME, "Environment change detected, looks like you've been outside.");
 	} else {
 		insideTooLong = true;
 		nextCheck = now + recheckPeriod;
@@ -87,8 +85,8 @@ int main()
 {
 	DisplayController display {};
 	if (!display.init()) {
-		Logger::logWarning(
-			MODULE_NAME, "Failed to initialize DisplayController module, continuing without display.");
+		Logger::logWarning(MODULE_NAME,
+			"Failed to initialize DisplayController module, continuing without display.");
 	}
 
 	MovementTelemetry moveTelemetry {};
@@ -121,7 +119,8 @@ int main()
 		}
 
 		if (now >= nextInsideCheck) {
-			checkInside(envTelemetry, display, insideTooLong, stationaryTooLong, now, nextInsideCheck);
+			checkInside(
+				envTelemetry, display, insideTooLong, stationaryTooLong, now, nextInsideCheck);
 		}
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
