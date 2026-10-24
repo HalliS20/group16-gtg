@@ -69,7 +69,7 @@ void Pet::drawFace(LEDMatrixDriver& driver, unsigned int sadLevel) const
 		driver.setPixel(5, 5, COLOR_FACE);
 		driver.setPixel(2, 1, COLOR_FACE);
 		driver.setPixel(5, 1, COLOR_FACE);
-		driver.setPixel(6, 4, COLOR_CYAN); // tear
+		driver.setPixel(6, 3, COLOR_CYAN); // tear
 	}
 }
 
