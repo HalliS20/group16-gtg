@@ -7,6 +7,7 @@ static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_EYE {.red = 0, .green 
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_GREEN {.red = 0, .green = 255, .blue = 0};
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_BLUE {.red = 0, .green = 0, .blue = 255};
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_CYAN {.red = 0, .green = 255, .blue = 255};
+static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_EAR {.red = 255, .green = 255, .blue = 0};
 
 // Body rows, top to bottom. 1 = body pixel.
 static constexpr unsigned char bodyRows[Pet::height] = {
@@ -28,6 +29,13 @@ void Pet::draw(LEDMatrixDriver& driver, bool needOutside, bool needMovement) con
 		= (needOutside && needMovement) ? 2U : ((needOutside || needMovement) ? 1U : 0U);
 
 	drawBody(driver, sadLevel);
+	// cat ears
+	driver.setPixel(1, 0, COLOR_EAR);
+	driver.setPixel(2, 0, COLOR_EAR);
+	driver.setPixel(5, 0, COLOR_EAR);
+	driver.setPixel(6, 0, COLOR_EAR);
+	driver.setPixel(1, 1, COLOR_EAR);
+	driver.setPixel(6, 1, COLOR_EAR);
 	drawFace(driver, sadLevel);
 	drawIndicators(driver, needOutside, needMovement);
 }
