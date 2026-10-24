@@ -2,7 +2,6 @@
 #define ENVIRONMENT_RUNNER_H
 
 #include <atomic>
-#include <chrono>
 #include <cstddef>
 
 #include "EnvironmentTelemetry.h"
@@ -13,17 +12,18 @@ public:
 
 	void run(std::atomic<bool>& running);
 
-	[[nodiscard]] bool isInsideTooLong() const;
+	// Latest sensor values, refreshed by run(). Safe to call from another thread.
+	[[nodiscard]] EnvironmentTelemetry::Reading getEnvironment() const;
 
 private:
 	EnvironmentTelemetry& m_telemetry;
-	std::atomic<bool> m_inside_too_long {false};
+
+	std::atomic<double> m_temperature_degC {0.0};
+	std::atomic<double> m_humidity_percent {0.0};
 
 	std::size_t m_sample_count = 0;
-	std::chrono::steady_clock::time_point m_next_check {};
 
 	void printReading(const EnvironmentTelemetry::Reading& reading);
-	void evaluateInsideTooLong(double temp, double humidity);
 };
 
 #endif

@@ -9,6 +9,12 @@ static constexpr std::chrono::seconds recheckPeriod {1};
 static constexpr double movementThreshold_m = 1.0;
 static constexpr auto loopPeriod = std::chrono::milliseconds(100);
 
+static constexpr std::chrono::seconds insideTooLongPeriod {20};
+static constexpr std::chrono::seconds insideRecheckPeriod {1};
+static constexpr double insideTempMin = 18.0;
+static constexpr double insideTempMax = 25.0;
+static constexpr double insideHumMax = 50.0;
+
 static void checkStationary(Runner& runner, std::chrono::steady_clock::time_point now)
 {
 	if (runner.moveRunner.getTotalMovement_m() >= movementThreshold_m) {
@@ -41,6 +47,7 @@ static void redraw(Runner& runner)
 static void initRunner(Runner& runner)
 {
 	runner.nextStationaryCheck = std::chrono::steady_clock::now() + inactivityPeriod;
+	runner.nextInsideCheck = std::chrono::steady_clock::now() + insideTooLongPeriod;
 
 	runner.moveThread = std::thread([&]() {
 		runner.moveRunner.run(runner.moveRunning);
@@ -50,15 +57,39 @@ static void initRunner(Runner& runner)
 	});
 }
 
+static void checkInsideTooLong(Runner& runner, std::chrono::steady_clock::time_point now)
+{
+	if (now < runner.nextInsideCheck) {
+		return;
+	}
+
+	const EnvironmentTelemetry::Reading reading = runner.envRunner.getEnvironment();
+	const bool insideTemp
+		= reading.temperature_degC >= insideTempMin && reading.temperature_degC <= insideTempMax;
+	const bool insideHum = reading.humidity_percent < insideHumMax;
+
+	if (!insideTemp || !insideHum) {
+		runner.insideTooLong = false;
+		runner.nextInsideCheck = now + insideTooLongPeriod;
+
+		Logger::logInfo(MODULE_NAME, "Environment change detected, looks like you've been outside.");
+	} else {
+		runner.insideTooLong = true;
+		runner.nextInsideCheck = now + insideRecheckPeriod;
+
+		Logger::logWarning(MODULE_NAME, "You might not have gone outside in a while.");
+	}
+}
+
 static void updateRunner(Runner& runner)
 {
 	const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
 
 	bool changed = false;
 
-	const bool newInsideTooLong = runner.envRunner.isInsideTooLong();
-	if (newInsideTooLong != runner.insideTooLong) {
-		runner.insideTooLong = newInsideTooLong;
+	const bool wasInsideTooLong = runner.insideTooLong;
+	checkInsideTooLong(runner, now);
+	if (runner.insideTooLong != wasInsideTooLong) {
 		changed = true;
 	}
 

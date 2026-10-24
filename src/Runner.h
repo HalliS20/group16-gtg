@@ -24,6 +24,7 @@ struct Runner {
 	bool insideTooLong = false;
 	bool stationaryTooLong = false;
 	std::chrono::steady_clock::time_point nextStationaryCheck {};
+	std::chrono::steady_clock::time_point nextInsideCheck {};
 
 	std::atomic<bool> moveRunning {true};
 	std::atomic<bool> envRunning {true};

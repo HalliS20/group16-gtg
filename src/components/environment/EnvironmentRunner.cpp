@@ -4,19 +4,8 @@
 #include <print>
 #include <unistd.h>
 
-#include "utils/Logger.h"
-
-using std::chrono::seconds;
-using std::chrono::steady_clock;
-
-static constexpr const char* MODULE_NAME = "EnvironmentRunner";
-static constexpr int poll_interval_ms = 1000;
 static constexpr std::size_t print_sample_interval = 5;
-static constexpr seconds inside_too_long_period {20};
-static constexpr seconds recheck_period {1};
-static constexpr double inside_temp_min = 18.0;
-static constexpr double inside_temp_max = 25.0;
-static constexpr double inside_hum_max = 50.0;
+static constexpr int poll_interval_ms = 1000;
 
 EnvironmentRunner::EnvironmentRunner(EnvironmentTelemetry& telemetry)
 	: m_telemetry(telemetry)
@@ -36,44 +25,22 @@ void EnvironmentRunner::printReading(const EnvironmentTelemetry::Reading& readin
 	fflush(stdout);
 }
 
-void EnvironmentRunner::evaluateInsideTooLong(double temp, double humidity)
+EnvironmentTelemetry::Reading EnvironmentRunner::getEnvironment() const
 {
-	const steady_clock::time_point now = steady_clock::now();
-	if (now < m_next_check) {
-		return;
-	}
-
-	const bool inside_temp = temp >= inside_temp_min && temp <= inside_temp_max;
-	const bool inside_hum = humidity < inside_hum_max;
-	const bool inside = inside_temp && inside_hum;
-
-	if (!inside) {
-		m_inside_too_long = false;
-		m_next_check = now + inside_too_long_period;
-
-		Logger::logInfo(MODULE_NAME, "Environment change detected, looks like you've been outside.");
-	} else {
-		m_inside_too_long = true;
-		m_next_check = now + recheck_period;
-
-		Logger::logWarning(MODULE_NAME, "You might not have gone outside in a while.");
-	}
+	EnvironmentTelemetry::Reading reading;
+	reading.temperature_degC = m_temperature_degC.load();
+	reading.humidity_percent = m_humidity_percent.load();
+	return reading;
 }
 
 void EnvironmentRunner::run(std::atomic<bool>& running)
 {
-	m_next_check = std::chrono::steady_clock::now() + inside_too_long_period;
-
 	while (running) {
 		usleep(poll_interval_ms * 1000);
 
 		const EnvironmentTelemetry::Reading reading = m_telemetry.getReading();
+		m_temperature_degC.store(reading.temperature_degC);
+		m_humidity_percent.store(reading.humidity_percent);
 		printReading(reading);
-		evaluateInsideTooLong(reading.temperature_degC, reading.humidity_percent);
 	}
-}
-
-bool EnvironmentRunner::isInsideTooLong() const
-{
-	return m_inside_too_long.load();
 }
