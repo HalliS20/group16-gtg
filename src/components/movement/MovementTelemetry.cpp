@@ -3,10 +3,11 @@
 #include "utils/Logger.h"
 
 static constexpr const char* MODULE_NAME = "MovementTelemetry";
+using Logger::logError;
+using Logger::logInfo;
 
 bool MovementTelemetry::init()
 {
-	using namespace Logger;
 
 	logInfo(MODULE_NAME, "Loading RTIMULib.ini settings.");
 	m_imuSettings = std::make_unique<RTIMUSettings>("RTIMULib");

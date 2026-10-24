@@ -19,16 +19,12 @@ struct Fit {
 	double t1 = 0.0, dt = 0.0;
 };
 
-namespace {
-
-bool allZero(const std::vector<double>& v)
+static bool allZero(const std::vector<double>& v)
 {
 	return v.size() == stationary_sample_count && std::ranges::all_of(v, [](double d) {
 		return d == 0.0;
 	});
 }
-
-} // namespace
 
 static void addAccel(Accel& accel, double x, double y, double z, uint64_t ts)
 {

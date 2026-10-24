@@ -31,6 +31,5 @@ int main()
 	MovementRunner moveRunner(moveTelemetry);
 	EnvironmentRunner envRunner(envTelemetry);
 
-	Runner runner {display, moveRunner, envRunner};
-	runLoop(runner);
+	runLoop(display, moveRunner, envRunner);
 }
