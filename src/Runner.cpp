@@ -33,15 +33,8 @@ void Runner::checkStationary(std::chrono::steady_clock::time_point now)
 
 void Runner::redraw()
 {
-	if (insideTooLong && stationaryTooLong) {
-		display.setRed();
-	} else if (insideTooLong) {
-		display.setGreen();
-	} else if (stationaryTooLong) {
-		display.setBlue();
-	} else {
-		display.setWhite();
-	}
+	// Test mode: LED forced off regardless of state.
+	display.setOff();
 }
 
 void Runner::init()

@@ -3,6 +3,7 @@
 #include <utility>
 
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_GREEN {.red = 0, .green = 255, .blue = 0};
+static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_OFF {.red = 0, .green = 0, .blue = 0};
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_WHITE {
 	.red = 255, .green = 255, .blue = 255};
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_BLUE {.red = 0, .green = 0, .blue = 255};
@@ -41,6 +42,11 @@ void DisplayController::setBlue()
 	setColor(COLOR_BLUE);
 }
 
+void DisplayController::setOff()
+{
+	setColor(COLOR_OFF);
+}
+
 void DisplayController::setWhite()
 {
 	setColor(COLOR_WHITE);
@@ -56,6 +62,6 @@ bool DisplayController::init()
 	}
 
 	m_driver.emplace(std::move(driverResult.value()));
-	setWhite();
+	setOff();
 	return true;
 }
