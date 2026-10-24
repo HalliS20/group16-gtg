@@ -84,9 +84,6 @@ void Runner::checkInsideTooLong(std::chrono::steady_clock::time_point now)
 		}
 		nextInsideCheck = now + insideRecheckPeriod;
 	}
-
-	Logger::logWarning(MODULE_NAME, "You might not have gone outside in a while.");
-}
 }
 
 void Runner::update()
