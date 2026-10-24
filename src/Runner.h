@@ -32,6 +32,7 @@ private:
 
 	bool insideTooLong = false;
 	bool stationaryTooLong = false;
+	std::chrono::seconds outsideStreak {0};
 	std::chrono::steady_clock::time_point nextStationaryCheck;
 	std::chrono::steady_clock::time_point nextInsideCheck;
 

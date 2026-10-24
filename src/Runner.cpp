@@ -6,13 +6,14 @@ static constexpr const char* MODULE_NAME = "GTGApp";
 
 static constexpr std::chrono::seconds inactivityPeriod {10};
 static constexpr std::chrono::seconds recheckPeriod {1};
-static constexpr double movementThreshold_m = 1.0;
+static constexpr double movementThreshold_m = 10.0;
 static constexpr auto loopPeriod = std::chrono::milliseconds(100);
 
 static constexpr std::chrono::seconds insideTooLongPeriod {20};
 static constexpr std::chrono::seconds insideRecheckPeriod {1};
+static constexpr std::chrono::seconds outsideResetPeriod {60};
 static constexpr double insideTempMin = 18.0;
-static constexpr double insideTempMax = 26.0;
+static constexpr double insideTempMax = 27.0;
 static constexpr double insideHumMax = 50.0;
 
 void Runner::checkStationary(std::chrono::steady_clock::time_point now)
@@ -59,18 +60,33 @@ void Runner::checkInsideTooLong(std::chrono::steady_clock::time_point now)
 	const bool insideTemp
 		= reading.temperature_degC >= insideTempMin && reading.temperature_degC <= insideTempMax;
 	const bool insideHum = reading.humidity_percent < insideHumMax;
+	const bool looksInside = insideTemp && insideHum;
 
-	if (!insideTemp || !insideHum) {
-		insideTooLong = false;
-		nextInsideCheck = now + insideTooLongPeriod;
-
-		Logger::logInfo(MODULE_NAME, "Environment change detected, looks like you've been outside.");
-	} else {
-		insideTooLong = true;
+	if (!looksInside) {
+		// Outside: start/continue the outside streak.
+		if (!insideTooLong) {
+			insideTooLong = true;
+			Logger::logInfo(MODULE_NAME, "Outside detected, outside timer started.");
+		}
+		outsideStreak += insideRecheckPeriod;
+		if (outsideStreak >= outsideResetPeriod) {
+			insideTooLong = false;
+			outsideStreak = std::chrono::seconds {0};
+			Logger::logInfo(MODULE_NAME, "Been outside long enough, inside flag cleared.");
+		}
 		nextInsideCheck = now + insideRecheckPeriod;
-
-		Logger::logWarning(MODULE_NAME, "You might not have gone outside in a while.");
+	} else {
+		// Back inside: outside streak no longer counts.
+		outsideStreak = std::chrono::seconds {0};
+		if (!insideTooLong) {
+			insideTooLong = true;
+			Logger::logWarning(MODULE_NAME, "You might not have gone outside in a while.");
+		}
+		nextInsideCheck = now + insideRecheckPeriod;
 	}
+
+	Logger::logWarning(MODULE_NAME, "You might not have gone outside in a while.");
+}
 }
 
 void Runner::update()
