@@ -4,7 +4,7 @@
 #include <print>
 #include <unistd.h>
 
-static constexpr std::size_t print_sample_interval = 100;
+static constexpr std::size_t print_sample_interval = 1000;
 
 // tighter than IMUGetPollInterval()'s default, steadies the sample rate
 static constexpr int poll_interval_ms = 1;
