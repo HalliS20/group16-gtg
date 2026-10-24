@@ -46,6 +46,15 @@ void DisplayController::setWhite()
 	setColor(COLOR_WHITE);
 }
 
+void DisplayController::showPet(bool needOutside, bool needMovement)
+{
+	if (!m_driver.has_value()) {
+		return;
+	}
+
+	m_pet.draw(*m_driver, needOutside, needMovement);
+}
+
 bool DisplayController::init()
 {
 	std::expected<LEDMatrixDriver, std::string> driverResult

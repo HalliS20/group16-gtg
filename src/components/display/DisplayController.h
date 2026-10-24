@@ -5,6 +5,8 @@
 
 #include <LEDMatrixDriver.h>
 
+#include "Pet.h"
+
 // Owns all sense-hat specific wiring (framebuffer device, asset paths).
 class DisplayController {
 public:
@@ -15,8 +17,12 @@ public:
 	void setBlue();
 	void setRed();
 
+	// Draw the pet with status indicators.
+	void showPet(bool needOutside, bool needMovement);
+
 private:
 	std::optional<LEDMatrixDriver> m_driver;
+	Pet m_pet;
 
 	void setColor(const LEDMatrixDriver::LEDMatrixRGBColor& color);
 };

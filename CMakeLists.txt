@@ -13,6 +13,7 @@ add_executable(gtg
 	src/main.cpp
 	src/Runner.cpp
 	src/components/display/DisplayController.cpp
+	src/components/display/Pet.cpp
 	src/components/environment/EnvironmentRunner.cpp
 	src/components/environment/EnvironmentTelemetry.cpp
 	src/components/movement/Accel.cpp
