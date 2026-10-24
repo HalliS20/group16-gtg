@@ -1,7 +1,7 @@
 #include "Pet.h"
 
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_BLACK {.red = 0, .green = 0, .blue = 0};
-static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_BODY {.red = 255, .green = 0, .blue = 255};
+static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_BODY {.red = 255, .green = 165, .blue = 0};
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_FACE {.red = 0, .green = 0, .blue = 0};
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_EYE {.red = 0, .green = 0, .blue = 0};
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_GREEN {.red = 0, .green = 255, .blue = 0};
