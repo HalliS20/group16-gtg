@@ -1,71 +1,62 @@
 #include "DisplayController.h"
 
 #include <utility>
-#include <vector>
 
 namespace {
 
 constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_GREEN {.red = 0, .green = 255, .blue = 0};
 constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_WHITE {.red = 255, .green = 255, .blue = 255};
-constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_YELLOW {.red = 255, .green = 255, .blue = 0};
+constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_BLUE {.red = 0, .green = 0, .blue = 255};
 constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_RED {.red = 255, .green = 0, .blue = 0};
+
+// for the emulator, use "/dev/shm/rpi-sense-emu-screen" with size 160 instead.
+// check /sys/class/graphics/fb*/name to find the correct fb on real hardware.
+constexpr const char* FB_NAME = "/dev/fb1";
+constexpr size_t FB_SIZE = 128LU; // 160 for emulator, 128 for the real
+constexpr size_t FB_BYTES_PER_PX = 2LU; // 16 bit per pixel RGB565
+constexpr size_t FB_WIDTH_PX = 8LU;
+constexpr size_t FB_HEIGHT_PX = 8LU;
+constexpr const char* TEXT_FILE_ASSET_PATH = "assets/sense_hat_text.txt";
+constexpr const char* IMAGE_FILE_ASSET_PATH = "assets/sense_hat_text.png";
 
 } // namespace
 
-bool DisplayController::init(const std::filesystem::path& fbDev, size_t fbSize,
-	size_t bytesPerPixel, size_t width, size_t height, const std::filesystem::path& textAssetsPath,
-	const std::filesystem::path& imageAssetsPath)
+bool DisplayController::init()
 {
-	auto driverResult
-		= LEDMatrixDriver::create(fbDev, fbSize, bytesPerPixel, width, height, textAssetsPath, imageAssetsPath);
+	auto driverResult = LEDMatrixDriver::create(
+		FB_NAME, FB_SIZE, FB_BYTES_PER_PX, FB_WIDTH_PX, FB_HEIGHT_PX, TEXT_FILE_ASSET_PATH, IMAGE_FILE_ASSET_PATH);
 	if (!driverResult.has_value()) {
 		return false;
 	}
 
 	m_driver.emplace(std::move(driverResult.value()));
-	m_width = width;
-	m_height = height;
-	updateDisplay();
+	setWhite();
 	return true;
 }
 
-void DisplayController::setInsideTooLong(bool tooLong)
+void DisplayController::setWhite()
 {
-	if (m_insideTooLong.exchange(tooLong) != tooLong) {
-		updateDisplay();
-	}
+	setColor(COLOR_WHITE);
 }
 
-void DisplayController::setStationaryTooLong(bool tooLong)
+void DisplayController::setGreen()
 {
-	if (m_stationaryTooLong.exchange(tooLong) != tooLong) {
-		updateDisplay();
-	}
+	setColor(COLOR_GREEN);
 }
 
-void DisplayController::updateDisplay()
+void DisplayController::setBlue()
 {
-	if (!m_driver.has_value()) {
-		return;
-	}
+	setColor(COLOR_BLUE);
+}
 
-	const bool insideTooLong = m_insideTooLong.load();
-	const bool stationaryTooLong = m_stationaryTooLong.load();
+void DisplayController::setRed()
+{
+	setColor(COLOR_RED);
+}
 
-	if (insideTooLong && stationaryTooLong) {
-		m_driver->clear(COLOR_RED);
-	} else if (insideTooLong) {
-		m_driver->clear(COLOR_GREEN);
-	} else if (stationaryTooLong) {
-		m_driver->clear(COLOR_YELLOW);
-	} else {
-		std::vector<LEDMatrixDriver::LEDMatrixPixel> checkerboard;
-		checkerboard.reserve(m_width * m_height);
-		for (size_t y = 0; y < m_height; ++y) {
-			for (size_t x = 0; x < m_width; ++x) {
-				checkerboard.push_back(((x + y) % 2 == 0) ? COLOR_GREEN : COLOR_WHITE);
-			}
-		}
-		m_driver->setPixels(checkerboard);
+void DisplayController::setColor(const LEDMatrixDriver::LEDMatrixRGBColor& color)
+{
+	if (m_driver.has_value()) {
+		m_driver->clear(color);
 	}
 }
