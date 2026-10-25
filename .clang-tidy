@@ -11,4 +11,6 @@ Checks: >
   -modernize-use-auto,
   -readability-identifier-length,
   -readability-magic-numbers,
-  -bugprone-easily-swappable-parameters
+  -bugprone-easily-swappable-parameters,
+  -misc-use-anonymous-namespace,
+  -modernize-use-nodiscard

@@ -18,3 +18,4 @@ build.ninja
 .DS_Store
 .vscode/
 .idea/
+/sim
