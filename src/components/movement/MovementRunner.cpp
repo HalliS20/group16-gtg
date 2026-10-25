@@ -6,6 +6,7 @@
 
 using std::println;
 
+// how often to print to console
 static constexpr std::size_t print_sample_interval = 1000;
 
 // tighter than IMUGetPollInterval()'s default, better for fast sample rate

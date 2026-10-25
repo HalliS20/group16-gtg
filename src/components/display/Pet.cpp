@@ -7,8 +7,11 @@ static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_BLACK {.red = 0, .gree
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_BODY {.red = 255, .green = 165, .blue = 0};
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_FACE {.red = 0, .green = 0, .blue = 0};
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_EYE {.red = 0, .green = 0, .blue = 0};
+// color for the green indicator for the "wants to go outside"
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_GREEN {.red = 0, .green = 255, .blue = 0};
+// color for blue indicator for the "wants to move"
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_BLUE {.red = 0, .green = 0, .blue = 255};
+// color of the tear
 static constexpr LEDMatrixDriver::LEDMatrixRGBColor COLOR_CYAN {.red = 0, .green = 255, .blue = 255};
 
 // Body rows, top to bottom. 1 = body pixel.

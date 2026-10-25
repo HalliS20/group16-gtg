@@ -6,7 +6,11 @@
 
 using Logger::logError;
 using Logger::logInfo;
+
+// Module name is printed to
 static constexpr const char* MODULE_NAME = "EnvironmentTelemetry";
+// divisor to cancel out cpu from heat measurement
+// found: http://yaab-arduino.blogspot.com/2016/08/accurate-temperature-reading-sensehat.html
 static constexpr double CPU_HEAT_COMPENSATION_DIVISOR = 1.5;
 
 bool EnvironmentTelemetry::init()

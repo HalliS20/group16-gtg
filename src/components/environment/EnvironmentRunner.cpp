@@ -4,7 +4,9 @@
 #include <print>
 #include <unistd.h>
 
+// how often to print every 5 samples rn
 static constexpr std::size_t print_sample_interval = 5;
+// how often to poll the sensor
 static constexpr int poll_interval_ms = 1000;
 
 EnvironmentRunner::EnvironmentRunner(EnvironmentTelemetry& telemetry)

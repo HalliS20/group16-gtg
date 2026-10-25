@@ -2,6 +2,7 @@
 
 #include "utils/Logger.h"
 
+// Module name is printet to console
 static constexpr const char* MODULE_NAME = "MovementTelemetry";
 using Logger::logError;
 using Logger::logInfo;

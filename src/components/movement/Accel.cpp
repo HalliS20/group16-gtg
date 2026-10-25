@@ -11,9 +11,13 @@ using std::abs;
 using std::size_t;
 
 static constexpr double G = 9.80665;
+// all acceleration points below 0.05 are considered noice replaced with 0
 static constexpr double accel_deadband = 0.05;
+// all velocity below 0.02 is considered noice and replaced with 0
 static constexpr double velocity_deadband = 0.02; // m/s
+// 13 good window size for balance between noise filtering and drift resistance
 static constexpr size_t velocity_window_samples = 13;
+// smallest amount of samples possible for working integration
 static constexpr size_t stationary_sample_count = 25;
 
 struct Fit {
