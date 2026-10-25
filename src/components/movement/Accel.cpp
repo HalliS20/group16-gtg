@@ -7,11 +7,14 @@
 #include "utils/Integral.h"
 #include "utils/LinearRegression.h"
 
+using std::abs;
+using std::size_t;
+
 static constexpr double G = 9.80665;
 static constexpr double accel_deadband = 0.05;
 static constexpr double velocity_deadband = 0.02; // m/s
-static constexpr std::size_t velocity_window_samples = 13;
-static constexpr std::size_t stationary_sample_count = 25;
+static constexpr size_t velocity_window_samples = 13;
+static constexpr size_t stationary_sample_count = 25;
 
 struct Fit {
 	bool valid = false;
@@ -33,13 +36,13 @@ static void addAccel(Accel& accel, double x, double y, double z, uint64_t ts)
 	double z_residual = z;
 
 	// clearing out acceleration noise
-	if (std::abs(x_residual) < accel_deadband) {
+	if (abs(x_residual) < accel_deadband) {
 		x_residual = 0;
 	}
-	if (std::abs(y_residual) < accel_deadband) {
+	if (abs(y_residual) < accel_deadband) {
 		y_residual = 0;
 	}
-	if (std::abs(z_residual) < accel_deadband) {
+	if (abs(z_residual) < accel_deadband) {
 		z_residual = 0;
 	}
 

@@ -5,6 +5,8 @@
 
 #include "RTIMULib.h"
 
+using std::unique_ptr;
+
 class EnvironmentTelemetry {
 public:
 	struct Reading {
@@ -19,8 +21,8 @@ public:
 
 private:
 	static double getCpuTemp();
-	std::unique_ptr<RTHumidity> m_humiditySensor;
-	std::unique_ptr<RTIMUSettings> m_settings;
+	unique_ptr<RTHumidity> m_humiditySensor;
+	unique_ptr<RTIMUSettings> m_settings;
 
 	double m_lastTemperature_degC = 0.0;
 	double m_lastHumidity_percent = 0.0;

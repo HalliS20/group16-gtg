@@ -13,7 +13,7 @@ public:
 private:
 	static LEDMatrixDriver createDriver();
 
-	LEDMatrixDriver m_driver = createDriver();
+	LEDMatrixDriver m_driver;
 };
 
 #endif

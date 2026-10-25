@@ -9,6 +9,7 @@
 #include "components/environment/EnvironmentRunner.h"
 #include "components/movement/MovementRunner.h"
 
+using std::atomic;
 using std::chrono::steady_clock;
 
 class Runner {
@@ -38,8 +39,8 @@ private:
 	steady_clock::time_point next_stationary_check;
 	steady_clock::time_point next_inside_check;
 
-	std::atomic<bool> move_running {true};
-	std::atomic<bool> env_running {true};
+	atomic<bool> move_running {true};
+	atomic<bool> env_running {true};
 
 	std::thread move_thread;
 	std::thread env_thread;

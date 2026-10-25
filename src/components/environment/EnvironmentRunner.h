@@ -6,11 +6,13 @@
 
 #include "EnvironmentTelemetry.h"
 
+using std::atomic;
+
 class EnvironmentRunner {
 public:
 	explicit EnvironmentRunner(EnvironmentTelemetry& telemetry);
 
-	void run(std::atomic<bool>& running);
+	void run(atomic<bool>& running);
 
 	// Latest sensor values, refreshed by run(). Safe to call from another thread.
 	EnvironmentTelemetry::Reading getEnvironment() const;
@@ -18,8 +20,8 @@ public:
 private:
 	EnvironmentTelemetry& m_telemetry;
 
-	std::atomic<double> m_temperature_degC {0.0};
-	std::atomic<double> m_humidity_percent {0.0};
+	atomic<double> m_temperature_degC {0.0};
+	atomic<double> m_humidity_percent {0.0};
 
 	std::size_t m_sample_count = 0;
 

@@ -1,6 +1,8 @@
 #include "LinearRegression.h"
 
-LineFit fitLine(const std::vector<double>& y, const std::vector<uint64_t>& ts)
+using std::vector;
+
+LineFit fitLine(const vector<double>& y, const vector<uint64_t>& ts)
 {
 	LineFit fit;
 	const std::size_t count = y.size();

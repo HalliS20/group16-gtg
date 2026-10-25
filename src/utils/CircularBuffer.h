@@ -5,10 +5,13 @@
 #include <cstddef>
 #include <vector>
 
+using std::size_t;
+using std::vector;
+
 template <typename T = double> class CircularBuffer {
 public:
 	explicit CircularBuffer(int capacity)
-		: buf_(capacity > 0 ? static_cast<std::size_t>(capacity) : 0)
+		: buf_(capacity > 0 ? static_cast<size_t>(capacity) : 0)
 	{
 	}
 
@@ -24,16 +27,16 @@ public:
 		}
 	}
 
-	std::vector<T> get(std::size_t amount) const
+	vector<T> get(size_t amount) const
 	{
-		std::vector<T> out;
+		vector<T> out;
 		if (amount == 0) {
 			return out;
 		}
 
-		const std::size_t n = std::min(amount, size_);
+		const size_t n = std::min(amount, size_);
 		out.reserve(n);
-		for (std::size_t i = 0; i < n; ++i) {
+		for (size_t i = 0; i < n; ++i) {
 			out.push_back(buf_[(head_ + buf_.size() - n + i) % buf_.size()]);
 		}
 		return out;
@@ -50,9 +53,9 @@ public:
 	}
 
 private:
-	std::vector<T> buf_;
-	std::size_t head_ = 0;
-	std::size_t size_ = 0;
+	vector<T> buf_;
+	size_t head_ = 0;
+	size_t size_ = 0;
 };
 
 #endif

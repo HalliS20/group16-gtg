@@ -25,6 +25,7 @@ void DisplayController::showPet(bool need_outside, bool need_movement)
 }
 
 DisplayController::DisplayController()
+	: m_driver(createDriver())
 {
 	showPet(false, false);
 }

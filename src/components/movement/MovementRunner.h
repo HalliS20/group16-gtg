@@ -1,15 +1,16 @@
 #ifndef MOVEMENT_RUNNER_H
 #define MOVEMENT_RUNNER_H
 
+#include "MovementTelemetry.h"
 #include <atomic>
 
-#include "MovementTelemetry.h"
+using std::atomic;
 
 class MovementRunner {
 public:
 	explicit MovementRunner(MovementTelemetry& telemetry);
 
-	void run(std::atomic<bool>& running);
+	void run(atomic<bool>& running);
 
 	void resetData();
 
@@ -18,7 +19,7 @@ public:
 
 private:
 	MovementTelemetry& m_telemetry;
-	std::atomic<double> m_total_movement_m {0.0};
+	atomic<double> m_total_movement_m {0.0};
 };
 
 #endif

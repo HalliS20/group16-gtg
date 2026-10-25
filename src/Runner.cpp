@@ -3,20 +3,34 @@
 #include "utils/Logger.h"
 
 static constexpr const char* MODULE_NAME = "GTGApp";
+using std::chrono::seconds;
+using std::chrono::steady_clock;
 
-static constexpr std::chrono::seconds inactivity_period {10};
-static constexpr std::chrono::seconds recheck_period {1};
+// ----- change any of these variables to make behaviour different
+
+// allowed stationary period
+static constexpr seconds inactivity_period {10};
+// how often to check on movement
+static constexpr seconds recheck_period {1};
+// amount of meter user needs to move to get reset for movement
 static constexpr double movement_threshold_m = 10.0;
-static constexpr auto loop_period = std::chrono::milliseconds(100);
-
-static constexpr std::chrono::seconds inside_too_long_period {20};
-static constexpr std::chrono::seconds inside_recheck_period {1};
-static constexpr std::chrono::seconds outside_reset_period {5};
+// how long too long inside to start complains
+static constexpr seconds inside_too_long_period {20};
+// how often to recheck inside time
+static constexpr seconds inside_recheck_period {1};
+// how long needs to stay outside for reset
+static constexpr seconds outside_reset_period {5};
+// what is lowest regular inside temp
 static constexpr double inside_temp_min = 18.0;
+// max regular inside temp
 static constexpr double inside_temp_max = 27.0;
+// max that inside humidity should be
 static constexpr double inside_hum_max = 50.0;
 
-void Runner::checkStationary(std::chrono::steady_clock::time_point now)
+// how long to sleep between looping
+static constexpr auto loop_period = std::chrono::milliseconds(100);
+
+void Runner::checkStationary(steady_clock::time_point now)
 {
 	if (move_runner.getTotalMovement_m() >= movement_threshold_m) {
 		move_runner.resetData();
@@ -39,8 +53,8 @@ void Runner::redraw()
 
 void Runner::init()
 {
-	next_stationary_check = std::chrono::steady_clock::now() + inactivity_period;
-	next_inside_check = std::chrono::steady_clock::now() + inside_too_long_period;
+	next_stationary_check = steady_clock::now() + inactivity_period;
+	next_inside_check = steady_clock::now() + inside_too_long_period;
 
 	move_thread = std::thread([this]() {
 		move_runner.run(move_running);
@@ -50,7 +64,7 @@ void Runner::init()
 	});
 }
 
-void Runner::checkInsideTooLong(std::chrono::steady_clock::time_point now)
+void Runner::checkInsideTooLong(steady_clock::time_point now)
 {
 	if (now < next_inside_check) {
 		return;
@@ -71,13 +85,13 @@ void Runner::checkInsideTooLong(std::chrono::steady_clock::time_point now)
 		outside_streak += inside_recheck_period;
 		if (outside_streak >= outside_reset_period) {
 			inside_too_long = false;
-			outside_streak = std::chrono::seconds {0};
+			outside_streak = seconds {0};
 			Logger::logInfo(MODULE_NAME, "Been outside long enough, inside flag cleared.");
 		}
 		next_inside_check = now + inside_recheck_period;
 	} else {
 		// Back inside: outside streak no longer counts.
-		outside_streak = std::chrono::seconds {0};
+		outside_streak = seconds {0};
 		if (!inside_too_long) {
 			inside_too_long = true;
 			Logger::logWarning(MODULE_NAME, "You might not have gone outside in a while.");
@@ -88,7 +102,7 @@ void Runner::checkInsideTooLong(std::chrono::steady_clock::time_point now)
 
 void Runner::update()
 {
-	const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+	const steady_clock::time_point now = steady_clock::now();
 
 	bool changed = false;
 

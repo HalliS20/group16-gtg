@@ -1,11 +1,11 @@
 #ifndef MOVEMENT_TELEMETRY_H
 #define MOVEMENT_TELEMETRY_H
 
+#include "Accel.h"
+#include "RTIMULib.h"
 #include <memory>
 
-#include "Accel.h"
-
-#include "RTIMULib.h"
+using std::unique_ptr;
 
 class MovementTelemetry {
 public:
@@ -26,8 +26,8 @@ public:
 	Reading getReading();
 
 private:
-	std::unique_ptr<RTIMU> m_imu;
-	std::unique_ptr<RTIMUSettings> m_imuSettings;
+	unique_ptr<RTIMU> m_imu;
+	unique_ptr<RTIMUSettings> m_imuSettings;
 
 	Accel m_accel;
 };

@@ -4,6 +4,8 @@
 #include <print>
 #include <unistd.h>
 
+using std::println;
+
 static constexpr std::size_t print_sample_interval = 1000;
 
 // tighter than IMUGetPollInterval()'s default, better for fast sample rate
@@ -11,11 +13,11 @@ static constexpr int poll_interval_ms = 1;
 
 static void printReading(const MovementTelemetry::Reading& reading, double total_movement)
 {
-	std::println("Velocity  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", reading.x_vel, reading.y_vel,
+	println("Velocity  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", reading.x_vel, reading.y_vel,
 		reading.z_vel);
-	std::println("Position  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", reading.x_pos, reading.y_pos,
+	println("Position  x: {:8.4f}  y: {:8.4f}  z: {:8.4f}", reading.x_pos, reading.y_pos,
 		reading.z_pos);
-	std::println("Total movement: {:8.4f}", total_movement);
+	println("Total movement: {:8.4f}", total_movement);
 	fflush(stdout);
 }
 
